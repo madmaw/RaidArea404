@@ -205,28 +205,30 @@ type PerimeterPoint = {
   textureCoordinate?: Vector2,
   textureCoordinateOriginal?: boolean | number,
   fixed?: boolean,
+  popped?: boolean | number,
   minZ?: number,
   maxZ?: number,
 };
 
-function splitHorizontallyOnSelf(
-  perimeter: PerimeterPoint[]
+function bisectHorizontallyOnPoints(
+  perimeter: PerimeterPoint[],
+  points: PerimeterPoint[],
 ): PerimeterPoint[][] {
-  return perimeter.reduce((faces, point) => {
+  return points.reduce((faces, point) => {
 
     return faces.flatMap(face => {
-      const [above, below] = bisectPerimeterHorizontally(face, point.position[1]);
+      const [above, below] = bisectHorizontallyOnY(face, point.position[1]);
       if (above.some(hasDupes) || below.some(hasDupes)) {
         console.log('what??');
-        bisectPerimeterHorizontally(face, point.position[1]);
+        bisectHorizontallyOnY(face, point.position[1]);
       }
 
-      return [...above, ...below];
+      return above.concat(below);
     })
   }, [perimeter]);
 }
 
-function bisectPerimeterHorizontally(
+function bisectHorizontallyOnY(
   rawPerimeter: PerimeterPoint[],
   y: number,
 ): [PerimeterPoint[][], PerimeterPoint[][]] {
@@ -278,18 +280,29 @@ function bisectPerimeterHorizontally(
           // NOTE: should always be undefined, can probably remove
           //: p.position[2] || pNext.position[2];
           : undefined;
-      const farY = Math.abs(y - p.position[1]) > ERROR_MARGIN
+      const farY = Math.abs(y - p.position[1]) > ERROR_MARGIN;
+      const nextNearY = Math.abs(y - pNext.position[1]) < ERROR_MARGIN;
       if (i < i1 || i === i1 && farY || i > i2) {
         above.push(copyP);
       }
       if (i > i1 && (i < i2 || i == i2 && farY)) {
         below.push(copyP);
       }
+      // I think it's safe to do this as we always break up our polys
+      const minZ = p.minZ != null && pNext.minZ != null
+          ? p.minZ + (pNext.minZ - p.minZ) * proportion
+          : undefined;
+      const maxZ = p.maxZ != null && pNext.maxZ != null
+          ? p.maxZ + (pNext.maxZ - p.maxZ) * proportion
+          : undefined;
       if (i == i1) {
         const newP: PerimeterPoint = {
           position: [x1, y, z],
           textureCoordinate,
           textureCoordinateOriginal,
+          popped: p.popped && !farY || pNext.popped && nextNearY,
+          minZ,
+          maxZ
         };
         above.push(newP);
         below.push(newP);
@@ -299,6 +312,9 @@ function bisectPerimeterHorizontally(
           position: [x2, y, z],
           textureCoordinate,
           textureCoordinateOriginal,
+          popped: p.popped && !farY || pNext.popped && nextNearY,
+          minZ,
+          maxZ,
         };
         above.push(newP);
         below.push(newP);
@@ -313,10 +329,10 @@ function bisectPerimeterHorizontally(
           : [p];
     }
 
-    const [aboveAbove, aboveBelow] = bisectPerimeterHorizontally(above.flatMap(uniqueFilter), y);
-    const [belowAbove, belowBelow] = bisectPerimeterHorizontally(below.flatMap(uniqueFilter), y);
+    const [aboveAbove, aboveBelow] = bisectHorizontallyOnY(above.flatMap(uniqueFilter), y);
+    const [belowAbove, belowBelow] = bisectHorizontallyOnY(below.flatMap(uniqueFilter), y);
 
-    return [[...aboveAbove, ...belowAbove], [...aboveBelow, ...belowBelow]];
+    return [aboveAbove.concat(belowAbove), aboveBelow.concat(belowBelow)];
   } else {
     // rotate 0 makes a copy for us
     if ((perimeter[0].position[1] + perimeter[1].position[1])/2 < y) {
@@ -609,8 +625,8 @@ function extractPerimeters(model: ModelDefinition, i: HTMLImageElement, imageWid
           perimeter.push({
             position: [px - cx, py - cy],
             textureCoordinate: [
-              (px + bx + Math.cos(sideAngle + textureInsetAngle) * ERROR_MARGIN)/imageWidth,
-              (py + by + Math.sin(sideAngle + textureInsetAngle) * ERROR_MARGIN)/imageHeight
+              (px + bx + Math.cos(sideAngle + textureInsetAngle)/9)/imageWidth,
+              (py + by + Math.sin(sideAngle + textureInsetAngle)/9)/imageHeight
             ],
             textureCoordinateOriginal: 1,
             fixed: previousColor != color,
@@ -643,15 +659,18 @@ function extractPerimeters(model: ModelDefinition, i: HTMLImageElement, imageWid
         const [nnx, nny] = vector2Rotate(-aprevious, [nextNext[0] - next[0], nextNext[1] - next[1]]);
         const [anext, dnext] = vector2AngleAndDistance(current, next);
         if (ry < 0 && !fixed && (dprevious < 1.1 || dnext < 1.1)) {
-          if (nnx < 0) {
-            current[0] += Math.cos(anext) * dnext/2;
-            current[1] += Math.sin(anext) * dnext/2
-          } else {
-            const [a] = vector2AngleAndDistance(vector2Rotate(-aprevious, previous), vector2Rotate(-aprevious, next));
-            const l = Math.cos(a) * dprevious;
-            current[0] = previous[0] + Math.cos(a + aprevious) * l;
-            current[1] = previous[1] + Math.sin(a + aprevious) * l;
-          }
+          // if (nnx < 0) {
+          //   current[0] += Math.cos(anext) * dnext/2;
+          //   current[1] += Math.sin(anext) * dnext/2
+          // } else {
+          //   const [a] = vector2AngleAndDistance(vector2Rotate(-aprevious, previous), vector2Rotate(-aprevious, next));
+          //   const l = Math.cos(a) * dprevious;
+          //   current[0] = previous[0] + Math.cos(a + aprevious) * l;
+          //   current[1] = previous[1] + Math.sin(a + aprevious) * l;
+          // }
+          current[0] = (previous[0] + next[0])/2;
+          current[1] = (previous[1] + next[1])/2;
+          currentPoint.popped = 1;
         }
         previous = current;
       }
@@ -667,7 +686,8 @@ function modelToFaces(model: ModelDefinition, i: HTMLImageElement, imageWidth: n
     const face = getPerimeter(model, perimeters, faceId);
     // break up so we always produce convex polygons
     console.log(face);
-    let faces = splitHorizontallyOnSelf(face);
+    //let faces = bisectHorizontallyOnPoints(face, face);
+    let faces = [face];
 
     console.log('***');
     console.log(FACE_NAMES[faceId], faces);
@@ -680,7 +700,7 @@ function modelToFaces(model: ModelDefinition, i: HTMLImageElement, imageWidth: n
       console.log(`slice against ${SIDE_NAMES[side]} maps to ${FACE_NAMES[sideFaceId]}`,  sidePerimeter);
 
       // bisect face against horizontally to ensure the cross-sectioning works for partial-overlapping
-      const surfaces: Surface[] = splitHorizontallyOnSelf(sidePerimeter)
+      const surfaces: Surface[] = bisectHorizontallyOnPoints(sidePerimeter, sidePerimeter.concat(rotatePerimeter(angle, face)))
           .flatMap(face => face.flatMap((point, i) => {
             const previousPoint = face[(i + face.length - 1)%face.length]
             const p1 = previousPoint.position;
@@ -722,15 +742,19 @@ function modelToFaces(model: ModelDefinition, i: HTMLImageElement, imageWidth: n
 
           // are the intersection points within the min/max z for this face?
           // NOTE: can probably remove Math.min Math.max and just pick one point to compare
-          if (rotatedFace.some(p => p.maxZ != null && p.maxZ < Math.max(p1[0], p2[0]) - ERROR_MARGIN || p.minZ != null && p.minZ > Math.min(p1[0], p2[0]) + ERROR_MARGIN)) {
-            console.log('ignoring', surface, rotatedFace);
-            return [rotatePerimeter(-angle, rotatedFace)];
-            //return [];
-          } else {
-            const below = bisectPerimeterHorizontally(rotatedFace, p1[1])[1];
-            const faces = below
-                .flatMap(face => bisectPerimeterHorizontally(face, p2[1])[0])
-                .flatMap(face => {
+          const below = bisectHorizontallyOnY(rotatedFace, p1[1])[1];
+          const faces = below
+              .flatMap(face => bisectHorizontallyOnY(face, p2[1])[0])
+              .flatMap(face => {
+                console.log('bisected face', surface, face);
+                if (face.some(p => p.minZ != null && p.minZ > Math.min(p1[0], p2[0]) + ERROR_MARGIN)) {
+                  console.log('passing through', face);
+                  return [rotatePerimeter(-angle, rotatedFace)];
+                } else if (face.some(p => p.maxZ != null && p.maxZ < Math.max(p1[0], p2[0]) - ERROR_MARGIN)) {
+                  console.log('removing', face);
+                  return [];
+                } else {
+
                   const zMappedUnrotatedFace = rotatePerimeter(-angle, face.map(p => {
                     let minZ: number | undefined;
                     let maxZ: number | undefined;
@@ -785,35 +809,35 @@ function modelToFaces(model: ModelDefinition, i: HTMLImageElement, imageWidth: n
                   // it's the last time we will look at this poly, so tidy it up
                   if (side) {
 
-                    let previousPoint = zMappedUnrotatedFace[zMappedUnrotatedFace.length - 1];
-                    const normal = vector3Normalize(
-                      vector3Divide(
-                        zMappedUnrotatedFace.reduce((n, point, i) => {
-                          const nextPoint = zMappedUnrotatedFace[(i+1)%zMappedUnrotatedFace.length];
-                          // want to remove any non-flat surfaces on alternate edge, otherwise you get duplicates
-                          const v1 = vector3Subtract(previousPoint.position as Vector3, point.position as Vector3);
-                          const v2 = vector3Subtract(nextPoint.position as Vector3, point.position as Vector3);
+                    // let previousPoint = zMappedUnrotatedFace[zMappedUnrotatedFace.length - 1];
+                    // const normal = vector3Normalize(
+                    //   vector3Divide(
+                    //     zMappedUnrotatedFace.reduce((n, point, i) => {
+                    //       const nextPoint = zMappedUnrotatedFace[(i+1)%zMappedUnrotatedFace.length];
+                    //       // want to remove any non-flat surfaces on alternate edge, otherwise you get duplicates
+                    //       const v1 = vector3Subtract(previousPoint.position as Vector3, point.position as Vector3);
+                    //       const v2 = vector3Subtract(nextPoint.position as Vector3, point.position as Vector3);
 
-                          const ni = vector3Normalize(vector3CrossProduct(v1, v2));
-                          previousPoint = point;
-                          return n.map((v, j) => v + ni[j]) as Vector3;
-                        }, [0, 0, 0]),
-                        zMappedUnrotatedFace.length,
-                      )
-                    );
+                    //       const ni = vector3Normalize(vector3CrossProduct(v1, v2));
+                    //       previousPoint = point;
+                    //       return n.map((v, j) => v + ni[j]) as Vector3;
+                    //     }, [0, 0, 0]),
+                    //     zMappedUnrotatedFace.length,
+                    //   )
+                    // );
 
                     const averageZ = zMappedUnrotatedFace.reduce((v, p) => p.position[2] + v, 0) / zMappedUnrotatedFace.length;
 
                     let strange = true;
-                    if (zMappedUnrotatedFace.length > 3) {
-                      const ordered = zMappedUnrotatedFace.slice(0).sort((p1, p2) => p1.position[2] - p2.position[2]);
-                      const minZ = ordered[ordered.length - 1].position[2];
-                      const maxZ = ordered[0].position[2];
-                      if (maxZ - minZ > ERROR_MARGIN && ordered.some(p => p.position[2] - ERROR_MARGIN > minZ && p.position[2] + ERROR_MARGIN < maxZ )) {
-                        console.log('we have a strange poly');
-                        strange = true;
-                      }
-                    }
+                    // if (zMappedUnrotatedFace.length > 3) {
+                    //   const ordered = zMappedUnrotatedFace.slice(0).sort((p1, p2) => p1.position[2] - p2.position[2]);
+                    //   const minZ = ordered[ordered.length - 1].position[2];
+                    //   const maxZ = ordered[0].position[2];
+                    //   if (maxZ - minZ > ERROR_MARGIN && ordered.some(p => p.position[2] - ERROR_MARGIN > minZ && p.position[2] + ERROR_MARGIN < maxZ )) {
+                    //     console.log('we have a strange poly');
+                    //     strange = true;
+                    //   }
+                    // }
                     if (strange) {
                       //const pivotIndex = Math.max(zMappedUnrotatedFace.findIndex(p => p.diagonalExternal), 0);
                       // let pivotIndex = 0;
@@ -831,7 +855,7 @@ function modelToFaces(model: ModelDefinition, i: HTMLImageElement, imageWidth: n
                       let maxDiff: undefined | number;
                       const pivotIndex = zMappedUnrotatedFace.reduce((i, p, j) => {
                         const diff = Math.abs(p.position[2] - averageZ);
-                        if (maxDiff == null || diff > maxDiff) {
+                        if (maxDiff == null || diff > maxDiff + ERROR_MARGIN || diff > maxDiff - ERROR_MARGIN && diff < maxDiff + ERROR_MARGIN && p.popped) {
                           maxDiff = diff;
                           return j;
                         }
@@ -865,6 +889,11 @@ function modelToFaces(model: ModelDefinition, i: HTMLImageElement, imageWidth: n
                             const keep = (faceId % 3 == FACE_FRONT)
                                 || ((faceId % 3) == FACE_LEFT && Math.abs(normal[0]) < ERROR_MARGIN)
                                 || (!(faceId % 3) && Math.abs(normal[0]) < ERROR_MARGIN && Math.abs(normal[1]) < ERROR_MARGIN);
+                            // if (!keep) {
+                            //   console.log('dropping face', side, normal, pivotPoint, point, nextPoint);
+                            // } else {
+                            //   console.log('keeping face', side, normal, pivotPoint, point, nextPoint);
+                            // }
                             return keep
                                 ? [[
                                     {...pivotPoint, position: [...pivotPoint.position]},
@@ -892,16 +921,16 @@ function modelToFaces(model: ModelDefinition, i: HTMLImageElement, imageWidth: n
                   } else {
                     return [zMappedUnrotatedFace];
                   }
-                });
+                }
+              });
 
             console.log('bisected rotated faces for surface', surface, faces);
             if (faces.some(face => face.length < 3)) {
               console.log('bad face num');
-              const aboveBelow = bisectPerimeterHorizontally(rotatedFace, p1[1])[1];
-              aboveBelow.flatMap(face => bisectPerimeterHorizontally(face, p2[1])[0]);
+              const aboveBelow = bisectHorizontallyOnY(rotatedFace, p1[1])[1];
+              aboveBelow.flatMap(face => bisectHorizontallyOnY(face, p2[1])[0]);
             }
             return faces;
-          }
         });
         return faces;
       });

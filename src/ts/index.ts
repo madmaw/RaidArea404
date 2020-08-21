@@ -7,7 +7,6 @@ const LONG_SHADER_NAMES = true;
 
 const models: ModelDefinition[] = [
   // chair
-  /*
   {
     [FACE_LEFT]: [0, 0, 6, 10],
     [FACE_FRONT]: [6, 0, 5, 10],
@@ -41,28 +40,36 @@ const models: ModelDefinition[] = [
     [FACE_LEFT]: [0, 23, 3, 2],
     [FACE_FRONT]: [3, 23, 3, 2],
   },
+  // head
+  {
+    [FACE_LEFT]: [24, 23, 5, 7],
+    [FACE_FRONT]: [19, 23, 5, 7],
+    [FACE_TOP]: [24, 18, 5, 5],
+  },
   // tombstone
   {
     //[FACE_BOTTOM]: [0, 25, 3, 3],
-    [FACE_LEFT]: [0, 25, 3, 4],
-    [FACE_FRONT]: [3, 25, 3, 4],
-    [FACE_RIGHT]: [6, 25, 3, 4],
-    [FACE_BACK]: [9, 25, 3, 4],
-    [FACE_TOP]: [3, 29, 3, 3],
+    [FACE_LEFT]: [0, 26, 3, 3],
+    [FACE_FRONT]: [3, 26, 3, 3],
+    //[FACE_RIGHT]: [6, 25, 3, 4],
+    //[FACE_BACK]: [9, 25, 3, 4],
+    //[FACE_TOP]: [3, 29, 3, 3],
     [FACE_BOTTOM]: [6, 29, 3, 3],
   },
+  /*
   // crosses
   {
-    [FACE_FRONT]: [12, 25, 2, 4],
-    [FACE_RIGHT]: [15, 25, 2, 4],
+    //[FACE_FRONT]: [12, 25, 2, 2],
+    [FACE_FRONT]: [0, 0, 2, 2],
+    [FACE_BACK]: [1, 4, 2, 2],
+    //[FACE_RIGHT]: [15, 25, 2, 2],
     //[FACE_TOP]: [12, 29, 3, 3],
     //[FACE_TOP]: [3, 29, 3, 3],
-  }
-  */
+  },
   // legs
   {
     [FACE_RIGHT]: [13, 27, 4, 3],
-    [FACE_FRONT]: [13, 20, 1, 3],
+    //[FACE_FRONT]: [13, 20, 1, 3],
     //[FACE_TOP]: [12, 29, 3, 3],
     //[FACE_TOP]: [3, 29, 3, 3],
   }
@@ -131,8 +138,14 @@ void main() {
 }
 `;
 
+// const v = document.createElement('img');
+// v.src = 'c.bmp';
+//v.onload = () => console.log('loaded');
 
 i.onload = () => {
+
+
+
   const iAspectRatio = i.width/i.height;
   const windowAspectRatio = innerWidth/innerHeight;
   const imageWidth = i.width;
@@ -184,10 +197,10 @@ i.onload = () => {
                   context.moveTo(x, y);
                 }
 
-                if (textureCoordinateOriginal) {
-                  context.fillStyle = 'yellow';
-                  context.fillRect(x - 4/scale, y - 4/scale, 8/scale, 8/scale);
-                }
+                // if (textureCoordinateOriginal) {
+                //   context.fillStyle = 'yellow';
+                //   context.fillRect(x - 4/scale, y - 4/scale, 8/scale, 8/scale);
+                // }
 
                 totalZ += z;
                 countZ++;
@@ -208,7 +221,7 @@ i.onload = () => {
 
     const perimeters = extractPerimeters(model, i, imageWidth, imageHeight);
     perimeters
-        .forEach((perimeter, faceId) => {
+        .map((perimeter, faceId) => {
           const rect = model[faceId];
           if (perimeter && rect) {
             const [ox, oy, ow, oh] = rect;
@@ -227,10 +240,26 @@ i.onload = () => {
 
               context.restore();
 
-              //context.fillRect(tx * imageWidth - 6/scale, ty * imageWidth - 6/scale, 12/scale, 12/scale);
             });
             context.closePath();
             context.stroke();
+          }
+          return perimeter
+        }).map((perimeter, faceId) => {
+          const rect = model[faceId];
+          if (perimeter && rect) {
+            context.strokeStyle = '#0f0';
+            const [ox, oy, ow, oh] = rect;
+
+            perimeter.forEach(({ position: [x, y], textureCoordinate: [tx, ty] }, i) => {
+              context.beginPath();
+              context.moveTo(ox + ow/2 + x, oy + oh/2 + y);
+              context.lineTo(tx * imageWidth, ty * imageWidth);
+              context.stroke();
+              context.beginPath();
+              context.arc(tx * imageWidth, ty * imageWidth, 6/scale, 0, Math.PI * 2);
+              context.stroke();
+            });
           }
         });
   });
@@ -403,43 +432,6 @@ i.onload = () => {
     requestAnimationFrame(update);
   };
   update(0);
-
-  /*
-  const positionBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  const positions = [
-    -1.0,  1.0,
-     1.0,  1.0,
-    -1.0, -1.0,
-     1.0, -1.0,
-  ];
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    new Float32Array(positions),
-    gl.STATIC_DRAW
-  );
-
-  const numComponents = 2;  // pull out 2 values per iteration
-  const type = gl.FLOAT;    // the data in the buffer is 32bit floats
-  const normalize = false;  // don't normalize
-  const stride = 0;         // how many bytes to get from one set of values to the next
-                            // 0 = use type and numComponents above
-  const offset = 0;         // how many bytes inside the buffer to start from
-  //gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-  gl.vertexAttribPointer(
-      attributes[A_VERTEX_POSITION_INDEX],
-      numComponents,
-      type,
-      normalize,
-      stride,
-      offset);
-  gl.enableVertexAttribArray(attributes[A_VERTEX_POSITION_INDEX]);
-
-
-
-  const vertexCount = 4;
-  gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertexCount);
-  */
 };
 i.src = 'i.bmp';
 
