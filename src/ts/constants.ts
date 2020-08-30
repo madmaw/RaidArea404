@@ -1,0 +1,3 @@
+const CONST_GRAVITY = .0001;
+const CONST_MAX_DELTA = 40;
+const CONST_MAX_LIGHTS = 1;

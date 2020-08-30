@@ -43,41 +43,39 @@ function vector3CrossProduct(v1: Vector3, v2: Vector3): Vector3 {
 
 function vector3GetNormal(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number) {
     return vector3CrossProduct(
-        vector3Normalize([x1, y1, z1]),
-        vector3Normalize([x2, y2, z2])
+        vectorNNormalize([x1, y1, z1]) as Vector3,
+        vectorNNormalize([x2, y2, z2]) as Vector3
     );
 }
 
-function vector3DotProduct(v1: Vector3, v2: Vector3): number {
-    return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+function vectorNDotProduct<T extends number[]>(v1: T, v2: T): number {
+    return v1.reduce<number>((r, v, i) => r + v * v2[i], 0);
+    //return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
 }
 
-function vector3Length(v: Vector3): number {
-    return Math.sqrt(vector3DotProduct(v, v));
+function vectorNLength<T extends number[]>(v: T): number {
+    return Math.sqrt(vectorNDotProduct(v, v));
 }
 
-function vectorNMix(v1: Vector3, v2: Vector3, amt: number) {
-    let result: number[] = [];
-    let i = v2.length;
-    while( i-- ) {
-        result[i] = v1[i] * amt + v2[i] * (1 - amt);
-    }
-    return result;
+function vectorNMix<T extends number[]>(v1: T, v2: T, amt: number): T {
+    return v1.map((v, i) => v * amt + v2[i] * (1 - amt)) as any;
 }
 
-function vector3Normalize(v: Vector3) {
-    return vector3Divide(v, vector3Length(v));
+function vectorNNormalize<T extends number[]>(v: T): T {
+    return vectorNDivide(v, vectorNLength(v)) as any;
 }
 
-function vector3Subtract(v1: Vector3, v2: Vector3): Vector3 {
-    return [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]];
+function vectorNSubtract<T extends number[]>(v1: T, v2: T): T {
+    //return [v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]];
+    return v1.map((v, i) => v - v2[i]) as any;
 }
 
-function vector3Divide(v: Vector3, d: number): Vector3 {
-    return [v[0]/d, v[1]/d, v[2]/d];
+function vectorNDivide<T extends number[]>(v: T, d: number): T {
+    return v.map(v => v/d) as any;
 }
 
-function vector2PolyContains(poly: Vector2[], x: number, y: number): boolean {
+// Closure compiler should strip out Z param
+function vector2PolyContains(poly: Vector2[], x: number, y: number, ignoredZ?: number): boolean {
     // from https://stackoverflow.com/questions/22521982/check-if-point-inside-a-polygon
 
     let inside: boolean;
@@ -95,7 +93,7 @@ function vector2PolyContains(poly: Vector2[], x: number, y: number): boolean {
     return inside;
 }
 
-function vector2PolyEdgeOverlapsCircle(poly: Vector2[], c: Vector2, r: number): Vector2 {
+function vector2PolyEdgeOverlapsCircle(poly: Vector2[], r: number, c: Vector2): Vector2 {
     // from https://bl.ocks.org/mbostock/4218871
     let cx = c[0];
     let cy = c[1];

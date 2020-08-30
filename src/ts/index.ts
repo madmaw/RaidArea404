@@ -2,150 +2,14 @@
 ///<reference path="./gl.ts"/>
 ///<reference path="./math/matrix.ts"/>
 ///<reference path="./math/vector.ts"/>
-
-const LONG_SHADER_NAMES = true;
-
-const models: ModelDefinition[] = [
-  // chair
-  {
-    [FACE_LEFT]: [0, 0, 6, 10],
-    [FACE_FRONT]: [6, 0, 5, 10],
-    [FACE_TOP]: [6, 10, 5, 6],
-  },
-  // cu
-  {
-    [FACE_FRONT]: [0, 10, 3, 3],
-    [FACE_RIGHT]: [3, 10, 3, 3],
-    [FACE_BOTTOM]: [0, 13, 3, 3],
-  },
-  // table
-  {
-    [FACE_RIGHT]: [0, 16, 11, 7],
-    [FACE_FRONT]: [11, 16, 13, 7],
-  },
-  // untextured cube
-  {
-    [DIMENSION_WIDTH]: 2,
-    [DIMENSION_HEIGHT]: 3,
-    [DIMENSION_DEPTH]: 4
-  },
-  // spanner
-  {
-    [FACE_FRONT]: [11, 0, 5, 16],
-    //[FACE_RIGHT]:[16, 0, 1, 16],
-    [DIMENSION_DEPTH]: .6
-  },
-  // pyramid
-  {
-    [FACE_LEFT]: [0, 23, 3, 2],
-    [FACE_FRONT]: [3, 23, 3, 2],
-  },
-  // head
-  {
-    [FACE_LEFT]: [24, 23, 5, 7],
-    [FACE_FRONT]: [19, 23, 5, 7],
-    [FACE_TOP]: [24, 18, 5, 5],
-  },
-  // tombstone
-  {
-    //[FACE_BOTTOM]: [0, 25, 3, 3],
-    [FACE_LEFT]: [0, 26, 3, 3],
-    [FACE_FRONT]: [3, 26, 3, 3],
-    //[FACE_RIGHT]: [6, 25, 3, 4],
-    //[FACE_BACK]: [9, 25, 3, 4],
-    //[FACE_TOP]: [3, 29, 3, 3],
-    [FACE_BOTTOM]: [6, 29, 3, 3],
-  },
-  /*
-  // crosses
-  {
-    //[FACE_FRONT]: [12, 25, 2, 2],
-    [FACE_FRONT]: [0, 0, 2, 2],
-    [FACE_BACK]: [1, 4, 2, 2],
-    //[FACE_RIGHT]: [15, 25, 2, 2],
-    //[FACE_TOP]: [12, 29, 3, 3],
-    //[FACE_TOP]: [3, 29, 3, 3],
-  },
-  // legs
-  {
-    [FACE_RIGHT]: [13, 27, 4, 3],
-    //[FACE_FRONT]: [13, 20, 1, 3],
-    //[FACE_TOP]: [12, 29, 3, 3],
-    //[FACE_TOP]: [3, 29, 3, 3],
-  }
-  // spiral
-  /*
-  {
-    [FACE_TOP]: [16, 0, 14, 16],
-    [DIMENSION_HEIGHT]: 5,
-  }
-  */
-];
-
-// Attributes
-
-const A_VERTEX_POSITION_INDEX = 0;
-const A_VERTEX_POSITION = LONG_SHADER_NAMES ? 'aVertexPosition' : 'a';
-
-const A_TEXTURE_COORDINATE_INDEX = 1;
-const A_TEXTURE_COORDINATE = LONG_SHADER_NAMES ? 'aTextureCoordinate' : 'b';
-
-const ATTRIBUTE_NAMES = LONG_SHADER_NAMES
-    ? [A_VERTEX_POSITION, A_TEXTURE_COORDINATE]
-    : 'ab'.split('');
-
-// uniforms
-
-const U_MODEL_VIEW_MATRIX_INDEX = 0;
-const U_MODEL_VIEW_MATRIX = LONG_SHADER_NAMES ? 'uModelViewMatrix' : 'A';
-
-const U_PROJECTION_MATRIX_INDEX = 1;
-const U_PROJECTION_MATRIX = LONG_SHADER_NAMES ? 'uProjectionMatrix' : 'B';
-
-const U_SAMPLER_INDEX = 2;
-const U_SAMPLER = LONG_SHADER_NAMES ? 'uSampler' : 'C';
-
-const UNIFORM_NAMES = LONG_SHADER_NAMES
-    ? [U_MODEL_VIEW_MATRIX, U_PROJECTION_MATRIX, U_SAMPLER]
-    : 'ABC'.split('');
-
-const V_TEXURE_COORDINATE = 'vTextureCoordinate';
-
-const PRECISION = 'lowp';
-
-const MAIN_VS = `
-attribute vec4 ${A_VERTEX_POSITION};
-attribute vec2 ${A_TEXTURE_COORDINATE};
-
-uniform mat4 ${U_MODEL_VIEW_MATRIX};
-uniform mat4 ${U_PROJECTION_MATRIX};
-
-varying vec2 ${V_TEXURE_COORDINATE};
-
-void main() {
-  gl_Position = ${U_PROJECTION_MATRIX} * ${U_MODEL_VIEW_MATRIX} * ${A_VERTEX_POSITION};
-  ${V_TEXURE_COORDINATE} = ${A_TEXTURE_COORDINATE};
-}
-`;
-const MAIN_FS = `
-
-uniform sampler2D ${U_SAMPLER};
-
-varying ${PRECISION} vec2 ${V_TEXURE_COORDINATE};
-
-void main() {
-  gl_FragColor = texture2D(${U_SAMPLER}, ${V_TEXURE_COORDINATE});
-}
-`;
+///<reference path="./flags.ts"/>
+///<reference path="./model_definitions.ts"/>
 
 // const v = document.createElement('img');
 // v.src = 'c.bmp';
 //v.onload = () => console.log('loaded');
 
 i.onload = () => {
-
-
-
   const iAspectRatio = i.width/i.height;
   const windowAspectRatio = innerWidth/innerHeight;
   const imageWidth = i.width;
@@ -158,9 +22,11 @@ i.onload = () => {
     c.width = i.width = (i.width * innerHeight) / i.height;
   }
   const scale = i.width / imageWidth;
-  const modelsFaces: PerimeterPoint[][][][] = models.map(model => {
-    console.log(model);
-    return modelToFaces(model, i, imageWidth, imageHeight);
+  const modelPerimeters: PerimeterPoint[][][] = models.map(model => {
+    return extractPerimeters(model, i, imageWidth, imageHeight);
+  })
+  const modelsFaces: PerimeterPoint[][][][] = models.map((model, i) => {
+    return modelToFaces(model, modelPerimeters[i]);
   });
 
   const context = c.getContext('2d');
@@ -219,7 +85,7 @@ i.onload = () => {
     context.fillStyle = '#afa';
     context.lineWidth = 3/scale;
 
-    const perimeters = extractPerimeters(model, i, imageWidth, imageHeight);
+    const perimeters = modelPerimeters[modelId];
     perimeters
         .map((perimeter, faceId) => {
           const rect = model[faceId];
@@ -269,118 +135,31 @@ i.onload = () => {
   // convert the models into 3D models
   g.width = innerWidth;
   g.height = innerHeight;
+  // g.width = 320;
+  // g.height = 240;
   const gl = g.getContext('webgl');
+  const mainProgramInputs = initMainProgram(gl, modelsFaces);
 
-  const main = initShaderProgram(gl, MAIN_VS, MAIN_FS);
-  const attributes = ATTRIBUTE_NAMES.map(name => gl.getAttribLocation(main, name));
-  const uniforms = UNIFORM_NAMES.map(name => gl.getUniformLocation(main, name));
+  l.width = 200;
+  l.height = 200;
 
-  const modelBuffers = modelsFaces.map(modelFaces => {
-    let vertexData: number[] = [];
-    let indices: number[] = [];
-    let textureCoordinates: number[] = [];
+  const lightingGLCanvases = [l];
+  const lightingProgramInputs = lightingGLCanvases.map(c => initMainProgram(c.getContext('webgl'), modelsFaces));
 
-    modelFaces.map((face, faceId) => {
-      const transform = FACE_TRANSFORMS[faceId];
-      face.map(poly => {
-        let pointCount = vertexData.length / 3;
-        // NOTE I think all the polys are flat at this point, but if they aren't
-        // picking a "fixed" perimeter point would ensure that the seams happen the direction we
-        // want them to
-        const axisPointIndex = pointCount;
-        poly.map((p, i) => {
-          vertexData.push(...vector3TransformMatrix4(transform, ...p.position));
-          // texture coordinates should all be non-null at this point
-          let textureCoordinate = p.textureCoordinate;
-          if (!textureCoordinate) {
-            console.log('no texture coordinates!')
-            textureCoordinate = [0, 0];
-          }
-          textureCoordinates.push(...textureCoordinate);
-          if (i > 1) {
-            indices.push(axisPointIndex, axisPointIndex + i - 1, axisPointIndex + i);
-          }
-        });
-      });
-    });
-
-    console.log(vertexData, indices, textureCoordinates);
-
-    const vertexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array(vertexData),
-      gl.STATIC_DRAW
-    );
-
-    const textureCoordinatesBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordinatesBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array(textureCoordinates),
-      gl.STATIC_DRAW
-    );
-
-    const indexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-
-    return {
-      vertexBuffer,
-      indexBuffer,
-      textureCoordinatesBuffer,
-      indexCount: indices.length,
-    };
-  });
-
-  let modelIndex = 0;
-
-  const fieldOfView = 45 * Math.PI / 180;   // in radians
-  const aspect = innerWidth / innerHeight;
-  const zNear = 0.1;
-  const zFar = 100;
-  const projectionMatrix = matrix4Perspective(Math.tan(fieldOfView)/2, aspect, zNear, zFar);
-  const modelViewMatrix = matrix4Translate(0, 0, -20);
-
-  let xRotation = 0;
-  let yRotation = 0;
-
-  gl.useProgram(main);
-
-  const texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, i);
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.uniform1i(uniforms[U_SAMPLER_INDEX], 0);
-
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.generateMipmap(gl.TEXTURE_2D);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-  const keys: {[_: number]: number} = {};
-
-  onkeydown = (e: KeyboardEvent) => keys[e.keyCode] = 1;
-  onkeyup = (e: KeyboardEvent) => keys[e.keyCode] = 0;
-  window.onkeypress = (e: KeyboardEvent) => {
-    console.log(e);
-    if (e.key == 'a') {
-      modelIndex = (modelIndex+1)%modelBuffers.length;
-    }
-  };
-
-  let then = 0;
-  const update = (now: number) => {
-
-    const diff = now - then;
-    then = now;
-    xRotation += ((keys[38]|| 0) - (keys[40] || 0)) * diff / 400;
-    yRotation += ((keys[39]|| 0) - (keys[37] || 0)) * diff / 400;
-
-    const { indexBuffer, vertexBuffer, textureCoordinatesBuffer, indexCount } = modelBuffers[modelIndex];
+  const renderer = (
+    gl: WebGLRenderingContext,
+    inputs: MainProgramInputs,
+    world: World,
+    roomX: number,
+    roomY: number,
+    cameraProjection: Matrix4,
+    cameraPosition: Vector3,
+    darknessFactor: number,
+    lights: {
+      lightPosition: Vector3,
+      lightProjection: Matrix4,
+    }[]
+  ) => {
 
     gl.clearColor(0, 0, 0, .4);
     gl.clearDepth(1);
@@ -388,6 +167,99 @@ i.onload = () => {
     gl.depthFunc(gl.LESS);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    const {
+      uniforms,
+    } = inputs;
+    gl.uniformMatrix4fv(
+      uniforms[U_PROJECTION_MATRIX_INDEX],
+      false,
+      matrix4Multiply(
+        cameraProjection,
+        matrix4Translate(...(cameraPosition.map(v => -v) as Vector3))
+      ),
+    );
+    gl.uniform3fv(
+      uniforms[U_CAMERA_POSITION_INDEX],
+      cameraPosition
+    );
+    gl.uniform2fv(
+      uniforms[U_LIGHT_INDEX],
+      [
+        darknessFactor,
+        lights.length
+      ]
+    );
+    if (lights.length || !FLAG_AVOID_GL_WARNINGS) {
+      gl.uniform3fv(
+        uniforms[U_LIGHT_POSITIONS_INDEX],
+        lights.flatMap(light => light.lightPosition),
+      );
+      gl.uniformMatrix4fv(
+        uniforms[U_LIGHT_PROJECTIONS_INDEX],
+        false,
+        lights.flatMap(light =>
+          matrix4Multiply(
+            light.lightProjection,
+            matrix4Translate(...(light.lightPosition.map(v => -v) as Vector3))
+          )
+        ),
+      );
+    }
+    iterateEntitiesInAdjoiningRooms(world, roomX, roomY, (entity: Entity) => {
+      // render
+      const transform = matrix4MultiplyStack([
+        matrix4Translate(...entity.position),
+        matrix4Rotate(-entity.zRotation, 0, 0, 1),
+      ]);
+      entityRenderer(gl, inputs, entity.body, transform, entity.partTransforms || {});
+    });
+  }
+
+  const entityRenderer = (
+    gl: WebGLRenderingContext,
+    inputs: MainProgramInputs,
+    part: BodyPart,
+    transform: Matrix4,
+    partTransforms: {[_: number]: Matrix4},
+    renderBackFaces?: boolean | number
+  ) => {
+    const {
+      attributes,
+      uniforms,
+      modelBuffers,
+    } = inputs;
+    const m = matrix4MultiplyStack([
+      transform,
+      matrix4Translate(...(part.attachmentPoint || [0, 0, 0])),
+      part.flipY ? matrix4Scale(1, -1, 1) : matrix4Identity(),
+      partTransforms[part.id] || matrix4Identity(),
+      part.attachmentTransform,
+    ]);
+
+    if (FLAG_CULL_FACES) {
+      renderBackFaces = renderBackFaces && !part.flipY || !renderBackFaces && part.flipY;
+      if (renderBackFaces) {
+        gl.cullFace(gl.FRONT);
+      } else {
+        gl.cullFace(gl.BACK);
+      }
+    }
+
+    gl.uniformMatrix4fv(
+      uniforms[U_MODEL_VIEW_MATRIX_INDEX],
+      false,
+      m,
+    );
+
+    const {
+      vertexBuffer,
+      indexBuffer,
+      textureCoordinateBuffer,
+      surfaceNormalBuffer,
+      indexCount,
+    } = modelBuffers[part.modelId];
+
+    // positions
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.vertexAttribPointer(
       attributes[A_VERTEX_POSITION_INDEX],
@@ -399,7 +271,8 @@ i.onload = () => {
     );
     gl.enableVertexAttribArray(attributes[A_VERTEX_POSITION_INDEX]);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordinatesBuffer);
+    // texture coordinates
+    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordinateBuffer);
     gl.vertexAttribPointer(
       attributes[A_TEXTURE_COORDINATE_INDEX],
       2,
@@ -410,32 +283,369 @@ i.onload = () => {
     );
     gl.enableVertexAttribArray(attributes[A_TEXTURE_COORDINATE_INDEX]);
 
+    // normals
+    gl.bindBuffer(gl.ARRAY_BUFFER, surfaceNormalBuffer);
+    gl.vertexAttribPointer(
+      attributes[A_SURFACE_NORMAL_INDEX],
+      3,
+      gl.FLOAT,
+      false,
+      0,
+      0
+    );
+    gl.enableVertexAttribArray(attributes[A_SURFACE_NORMAL_INDEX]);
+
+    // indices
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-    gl.uniformMatrix4fv(
-      uniforms[U_PROJECTION_MATRIX_INDEX],
-      false,
-      projectionMatrix
-    );
-    gl.uniformMatrix4fv(
-      uniforms[U_MODEL_VIEW_MATRIX_INDEX],
-      false,
-      matrix4MultiplyStack([modelViewMatrix, matrix4Rotate(1, 0, 0, xRotation), matrix4Rotate(0, 1, 0, yRotation)]),
-    );
-
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.uniform1i(uniforms[U_SAMPLER_INDEX], 0);
 
     gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 
+    part.children?.map(child => {
+      entityRenderer(gl, inputs, child, m, partTransforms, renderBackFaces);
+    });
+  };
+
+  let nextEntityId = 0;
+  function makeStaticEntity(
+    modelId: number,
+    position: Vector3,
+    scale: number,
+    collisionType: CollisionType,
+    zRotation?: number,
+  ): Entity {
+    const geometry = mainProgramInputs.modelBuffers[modelId];
+    const perimeter = collisionType < 0 // static collision
+        ? getPerimeter(models[modelId], modelPerimeters[modelId], FACE_TOP)
+            .map(p => {
+              const position = [...p.position] as Vector2;
+              // up is down
+              position[1] *= -1;
+              return vector2Rotate(Math.PI/2, position);
+            })
+            .map(p => p.map(v => v * scale) as Vector2)
+        : 0;
+    const collisionRadiusAdjust = collisionType == COLLISION_TYPE_DYNAMIC
+        ? .7
+        : 1;
+    return {
+      id: nextEntityId++,
+      depth: geometry.halfBounds[2] * 2 * scale,
+      position,
+      radius: vectorNLength(geometry.halfBounds.slice(0, 2).concat(0)) * scale * collisionRadiusAdjust,
+      body: {
+        attachmentTransform: matrix4MultiplyStack([
+          matrix4Scale(scale),
+          matrix4Translate(0, 0, geometry.halfBounds[2]),
+        ]),
+        modelId,
+      },
+      velocity: [0, 0, 0],
+      zRotation: zRotation || 0,
+      collisionType,
+      perimeter,
+    }
+  }
+
+  const humanBody: BodyPart = {
+    id: PART_ID_TORSO,
+    attachmentPoint: [0, 0, 1.07],
+    attachmentTransform: matrix4MultiplyStack([
+
+      matrix4Scale(.08),
+      matrix4Translate(0, 0, mainProgramInputs.modelBuffers[MODEL_ID_TORSO].halfBounds[2]),
+    ]),
+    modelId: MODEL_ID_TORSO,
+    children: [
+      {
+        id: PART_ID_HEAD,
+        modelId: MODEL_ID_HEAD,
+        attachmentPoint: [.2, 0, 5.5],
+        attachmentTransform: matrix4MultiplyStack([
+          matrix4Scale(.45),
+        ]),
+      },
+      {
+        id: PART_ID_RIGHT_UPPER_ARM,
+        modelId: MODEL_ID_UPPER_ARM,
+        attachmentPoint: [0, 2, 2.5],
+        attachmentTransform: matrix4MultiplyStack([
+          // matrix4Translate(0, 5, 1),
+          // matrix4Rotate(0, 0, 1, Math.PI/2),
+          //
+          //matrix4Rotate(0, 1, 0, -Math.PI/5),
+          //matrix4Rotate(1, 0, 0, -Math.PI/2),
+          matrix4Scale(.8),
+          matrix4Translate(0, 0, -2),
+          matrix4Rotate(-Math.PI/2, 0, 0, 1),
+        ]),
+        children: [
+          {
+            id: PART_ID_RIGHT_LOWER_ARM,
+            modelId: MODEL_ID_FOREARM,
+            attachmentPoint: [0, 0, -3],
+            attachmentTransform: matrix4MultiplyStack([
+              matrix4Rotate(Math.PI/5, 1, 0, 0),
+              matrix4Translate(1, -.5, -2.8),
+            ]),
+          }
+        ],
+      },
+      {
+        id: PART_ID_LEFT_UPPER_ARM,
+        modelId: MODEL_ID_UPPER_ARM,
+        flipY: 1,
+        attachmentPoint: [0, -2, 2.5],
+        attachmentTransform: matrix4MultiplyStack([
+          // matrix4Translate(0, 5, 1),
+           //matrix4Rotate(0, 1, 0, Math.PI/4),
+          //
+          //matrix4Rotate(1, 0, 0, Math.PI/5),
+          matrix4Scale(.8),
+          matrix4Translate(0, 0, -2),
+          //matrix4Rotate(0, 0, 1, Math.PI),
+          matrix4Rotate(-Math.PI/2, 0, 0, 1),
+        ]),
+        children: [
+          {
+            id: PART_ID_LEFT_LOWER_ARM,
+            modelId: MODEL_ID_FOREARM,
+            attachmentPoint: [0, 0, -3],
+            attachmentTransform: matrix4MultiplyStack([
+              matrix4Rotate(Math.PI/5, 1, 0, 0),
+              matrix4Translate(1, -.5, -2.8),
+            ]),
+          }
+        ],
+      },
+      // right thigh
+      {
+        id: PART_ID_RIGHT_UPPER_LEG,
+        modelId: MODEL_ID_THIGH,
+        attachmentPoint: [0, -.5, -4],
+        attachmentTransform: matrix4MultiplyStack([
+          matrix4Rotate(Math.PI/20, 1, 0, 0),
+          matrix4Translate(0, 0, -3),
+          matrix4Rotate(Math.PI * .55, 0, 0, 1),
+        ]),
+        children: [
+          {
+            id: PART_ID_RIGHT_LOWER_LEG,
+            modelId: MODEL_ID_CALF,
+            attachmentPoint: [0, 0, -5],
+            attachmentTransform: matrix4MultiplyStack([
+              matrix4Rotate(Math.PI/20, 0, 1, 0),
+              matrix4Translate(0, 0, -2.3),
+              matrix4Rotate(Math.PI/2, 0, 0, 1),
+            ]),
+          }
+        ]
+      },
+      {
+        id: PART_ID_LEFT_UPPER_LEG,
+        modelId: MODEL_ID_THIGH,
+        attachmentPoint: [0, .5, -4],
+        flipY: 1,
+        attachmentTransform: matrix4MultiplyStack([
+          matrix4Rotate(Math.PI/20, 1, 0, 0),
+          matrix4Translate(0, 0, -3),
+          matrix4Rotate(Math.PI * .55, 0, 0, 1),
+        ]),
+        children: [
+          {
+            id: PART_ID_LEFT_LOWER_LEG,
+            modelId: MODEL_ID_CALF,
+            attachmentPoint: [0, 0, -5],
+            attachmentTransform: matrix4MultiplyStack([
+              matrix4Rotate(Math.PI/20, 0, 1, 0),
+              matrix4Translate(0, 0, -2.3),
+              matrix4Rotate(Math.PI/2, 0, 0, 1),
+            ]),
+          }
+        ]
+      }
+    ]
+  }
+
+  const player: Entity = {
+    id: nextEntityId++,
+    body: humanBody,
+    position: [3, 2, 0],
+    depth: 1.5,
+    radius: .2,
+    velocity: [0, 0, 0],
+    collisionType: COLLISION_TYPE_DYNAMIC,
+    zRotation: Math.PI,
+    intelligence: INTELLIGENCE_USER_CONTROLLED,
+    animations:{
+      [ACTION_WALK]: {
+        frameDuration: 400,
+        keyFrames: makeWalkCycle(1)
+      }
+    },
+  };
+
+  const floors: Entity[] = new Array(ROOM_DIMENSION).fill(0).flatMap((v, x) => {
+    return new Array(ROOM_DIMENSION).fill(0).flatMap((v, y) => {
+      return [
+        makeStaticEntity(
+          MODEL_ID_WALL,
+          [x + .5, y + .5, -WALL_HEIGHT/WALL_WIDTH],
+          1/WALL_WIDTH,
+          COLLISION_TYPE_NONE,
+        ),
+        makeStaticEntity(
+          MODEL_ID_WALL,
+          [x + .5, y + .5, WALL_HEIGHT/WALL_WIDTH],
+          1/WALL_WIDTH,
+          COLLISION_TYPE_NONE,
+        ),
+      ]
+    })
+  });
+  const walls: Entity[] = new Array(ROOM_DIMENSION).fill(0).flatMap((v, i) => {
+
+    return [
+      makeStaticEntity(
+        MODEL_ID_WALL,
+        [i + .5, ROOM_DIMENSION +.5, i == 5 ? -WALL_HEIGHT/WALL_WIDTH : 0],
+        1/WALL_WIDTH,
+        COLLISION_TYPE_STATIC,
+      ),
+      makeStaticEntity(
+        MODEL_ID_WALL,
+        [ROOM_DIMENSION +.5, i + .5, 0],
+        1/WALL_WIDTH,
+        COLLISION_TYPE_STATIC,
+      ),
+      makeStaticEntity(
+        MODEL_ID_WALL,
+        [i +.5, -.5, i == 5 ? -WALL_HEIGHT/WALL_WIDTH : 0],
+        1/WALL_WIDTH,
+        COLLISION_TYPE_STATIC,
+      ),
+      makeStaticEntity(
+        MODEL_ID_WALL,
+        [-.5, i + .5, 0],
+        1/WALL_WIDTH,
+        COLLISION_TYPE_STATIC,
+      )
+    ];
+  });
+
+  const world: World = {
+    bounds: [1, 1],
+    age: 0,
+    rooms: [[
+      {
+        cameraPosition: [4, 4, 3],
+        lightPosition: [4.5, 4.5, 3],
+        lightProjection: matrix4MultiplyStack([
+          matrix4Perspective(Math.tan(Math.PI/3), 1, .1, 9),
+          matrix4Rotate(-0, 1, 0, 0),
+        ]),
+        entities: [
+          player,
+          // makeEntity( // spanner
+          //   modelBuffers[2],
+          //   [1.5, 1.5, 0],
+          //   .02,
+          //   COLLISION_TYPE_SENSOR
+          // ),
+          makeStaticEntity( // chair
+            MODEL_ID_CHAIR,
+            [3, 6, 0],
+            .15,
+            COLLISION_TYPE_STATIC,
+            -Math.PI/6
+          ),
+          makeStaticEntity( // table
+            MODEL_ID_TABLE,
+            [5, 3, 0],
+            .15,
+            COLLISION_TYPE_STATIC,
+            Math.PI/2
+          ),
+          ...floors,
+          ...walls
+        ],
+      }
+    ]]
+  };
+
+  const keyboardInputs: {[_: number]: number} = {};
+
+  onkeydown = (e: KeyboardEvent) => keyboardInputs[e.keyCode] = 1;
+  onkeyup = (e: KeyboardEvent) => keyboardInputs[e.keyCode] = 0;
+
+  let engineState: EngineState = {
+    visibleRoom: [0, 0],
+    player,
+    keyboardInputs,
+  };
+
+  let then = 0;
+  const update = (now: number) => {
     requestAnimationFrame(update);
+    const diff = CONST_MAX_DELTA ? Math.min(CONST_MAX_DELTA, now - then) : now - then;
+    then = now;
+
+
+    const cameraPosition = world.rooms[engineState.visibleRoom[0]][engineState.visibleRoom[1]].cameraPosition;
+    const cameraDelta = vectorNSubtract(player.position, cameraPosition);
+    const cameraZRotation = Math.atan2(cameraDelta[1], cameraDelta[0]);
+    const cameraDistance = vectorNLength(cameraDelta.slice(0, 2).concat(0));
+    const cameraYRotation = Math.atan2(cameraDistance, -cameraDelta[2] - player.depth);
+    //const cameraXRotation = Math.PI/2;
+
+    const fieldOfView = Math.PI / 4;
+    const aspect = innerWidth / innerHeight;
+    const zNear = .1;
+    const zFar = 99;
+    const cameraProjection = matrix4MultiplyStack([
+      //matrix4Perspective(Math.tan(fieldOfView)/2, aspect, zNear, zFar),
+      matrix4Perspective(Math.tan(fieldOfView)/2, aspect, zNear, zFar),
+      matrix4Rotate(-Math.PI/2, 0, 0, 1),
+      matrix4Rotate(cameraYRotation, 0, 1, 0),
+      matrix4Rotate(cameraZRotation, 0, 0, 1),
+    ]);
+
+    updater(world, engineState, diff);
+
+    const litRooms = iterateAdjoiningRooms(
+      world,
+      engineState.visibleRoom[0],
+      engineState.visibleRoom[1],
+      room => room.lightPosition && room
+    )
+    litRooms.map((room, i) => {
+      //console.log(vector3TransformMatrix4(room.lightProjection, 0, 0, 0));
+      const canvas = lightingGLCanvases[i];
+      renderer(
+        canvas.getContext('webgl'),
+        lightingProgramInputs[i],
+        world,
+        engineState.visibleRoom[0],
+        engineState.visibleRoom[1],
+        room.lightProjection,
+        room.lightPosition,
+        1,
+        []
+      );
+    });
+
+    renderer(
+      gl,
+      mainProgramInputs,
+      world,
+      engineState.visibleRoom[0],
+      engineState.visibleRoom[1],
+      cameraProjection,
+      cameraPosition,
+      9,
+      litRooms,
+    );
+
   };
   update(0);
 };
 i.src = 'i.bmp';
-
-type Geometry = {
-  vertexData: number[],
-  indices: number[],
-}

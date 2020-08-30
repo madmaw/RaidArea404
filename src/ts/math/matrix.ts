@@ -135,7 +135,15 @@ let matrix4PerspectiveFlippedY = function(tanFovyDiv2: number, aspect: number, z
     ];
 }
 
-function matrix4Rotate(x: number, y: number, z: number, rad: number): Matrix4 {
+function matrix4RotateInOrder(rx: number, ry: number, rz: number): Matrix4 {
+    return matrix4MultiplyStack([
+        matrix4Rotate(rx, 1, 0, 0),
+        matrix4Rotate(ry, 0, 1, 0),
+        matrix4Rotate(rz, 0, 0, 1),
+    ]);
+}
+
+function matrix4Rotate(rad: number, x: number, y: number, z: number): Matrix4 {
     let s_, c_, t_;
 
     s_ = Math.sin(rad);
@@ -151,7 +159,7 @@ function matrix4Rotate(x: number, y: number, z: number, rad: number): Matrix4 {
     ];
 }
 
-function matrix4Scale(x: number, y: number, z: number): Matrix4 {
+function matrix4Scale(x: number, y: number = x, z: number = y): Matrix4 {
     return [
         x, 0, 0, 0,
         0, y, 0, 0,
