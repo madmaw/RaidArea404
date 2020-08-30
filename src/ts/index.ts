@@ -130,8 +130,6 @@ i.onload = () => {
         });
   });
 
-
-
   // convert the models into 3D models
   g.width = innerWidth;
   g.height = innerHeight;
@@ -140,11 +138,14 @@ i.onload = () => {
   const gl = g.getContext('webgl');
   const mainProgramInputs = initMainProgram(gl, modelsFaces);
 
-  l.width = 200;
-  l.height = 200;
+  l.width = 512;
+  l.height = 512;
 
   const lightingGLCanvases = [l];
   const lightingProgramInputs = lightingGLCanvases.map(c => initMainProgram(c.getContext('webgl'), modelsFaces));
+  const lightingTextures = lightingGLCanvases.map(l => {
+    return gl.createTexture();
+  })
 
   const renderer = (
     gl: WebGLRenderingContext,
@@ -158,10 +159,11 @@ i.onload = () => {
     lights: {
       lightPosition: Vector3,
       lightProjection: Matrix4,
+      lightTexture?: WebGLTexture,
     }[]
   ) => {
 
-    gl.clearColor(0, 0, 0, .4);
+    gl.clearColor(0, 0, 0, 0);
     gl.clearDepth(1);
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LESS);
@@ -537,7 +539,7 @@ i.onload = () => {
     age: 0,
     rooms: [[
       {
-        cameraPosition: [4, 4, 3],
+        cameraPosition: [1, 1, 2.8],
         lightPosition: [4.5, 4.5, 3],
         lightProjection: matrix4MultiplyStack([
           matrix4Perspective(Math.tan(Math.PI/3), 1, .1, 9),
@@ -616,13 +618,13 @@ i.onload = () => {
       engineState.visibleRoom[0],
       engineState.visibleRoom[1],
       room => room.lightPosition && room
-    )
-    litRooms.map((room, i) => {
-      //console.log(vector3TransformMatrix4(room.lightProjection, 0, 0, 0));
-      const canvas = lightingGLCanvases[i];
+    );
+
+    const textureIds = litRooms.map((room, j) => {
+      const canvas = lightingGLCanvases[j];
       renderer(
         canvas.getContext('webgl'),
-        lightingProgramInputs[i],
+        lightingProgramInputs[j],
         world,
         engineState.visibleRoom[0],
         engineState.visibleRoom[1],
@@ -631,7 +633,20 @@ i.onload = () => {
         1,
         []
       );
+      // TODO render directly to the texture
+      //const lightingTexture = lightingTextures[i];
+      const lightingTexture = gl.createTexture();
+
+      gl.activeTexture(gl.TEXTURE1+j);
+      gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      return j + 1;
     });
+    gl.uniform1iv(
+      mainProgramInputs.uniforms[U_LIGHT_TEXTURES_INDEX],
+      textureIds,
+    );
 
     renderer(
       gl,
@@ -641,7 +656,7 @@ i.onload = () => {
       engineState.visibleRoom[1],
       cameraProjection,
       cameraPosition,
-      9,
+      4,
       litRooms,
     );
 

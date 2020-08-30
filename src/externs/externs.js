@@ -2,6 +2,7 @@ var i;
 var c;
 var g;
 var l;
+var t;
 var innerWidth;
 var innerHeight;
 var onkeyup;

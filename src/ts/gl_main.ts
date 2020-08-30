@@ -21,8 +21,8 @@ const U_MODEL_VIEW_MATRIX = FLAG_LONG_SHADER_NAMES ? 'uModelViewMatrix' : 'A';
 const U_PROJECTION_MATRIX_INDEX = 1;
 const U_PROJECTION_MATRIX = FLAG_LONG_SHADER_NAMES ? 'uProjectionMatrix' : 'B';
 
-const U_SAMPLER_INDEX = 2;
-const U_SAMPLER = FLAG_LONG_SHADER_NAMES ? 'uSampler' : 'C';
+const U_MODEL_TEXTURE_INDEX = 2;
+const U_MODEL_TEXTURE = FLAG_LONG_SHADER_NAMES ? 'uModelTexture' : 'C';
 
 const U_CAMERA_POSITION_INDEX = 3;
 const U_CAMERA_POSITION = FLAG_LONG_SHADER_NAMES ? 'uCameraPosition' : 'D';
@@ -36,17 +36,21 @@ const U_LIGHT_POSITIONS = FLAG_LONG_SHADER_NAMES ? 'uLightPositions' : 'F';
 const U_LIGHT_PROJECTIONS_INDEX = 6;
 const U_LIGHT_PROJECTIONS = FLAG_LONG_SHADER_NAMES ? 'uLightProjections' : 'G';
 
+const U_LIGHT_TEXTURES_INDEX = 7;
+const U_LIGHT_TEXTURES = FLAG_LONG_SHADER_NAMES ? 'uLightTextures' : 'H';
+
 const UNIFORM_NAMES = FLAG_LONG_SHADER_NAMES
     ? [
       U_MODEL_VIEW_MATRIX,
       U_PROJECTION_MATRIX,
-      U_SAMPLER,
+      U_MODEL_TEXTURE,
       U_CAMERA_POSITION,
       U_LIGHT,
       U_LIGHT_POSITIONS,
       U_LIGHT_PROJECTIONS,
+      U_LIGHT_TEXTURES,
     ]
-    : 'ABCDEFG'.split('');
+    : 'ABCDEFGH'.split('');
 
 const V_TEXURE_COORDINATE = FLAG_LONG_SHADER_NAMES ? 'vTextureCoordinate' : 'Z';
 const V_POSITION = FLAG_LONG_SHADER_NAMES ? 'vPosition' : 'Y';
@@ -55,10 +59,11 @@ const V_SURFACE_NORMAL = FLAG_LONG_SHADER_NAMES ? 'vSurfaceNormal' : 'X';
 const L_COLOR = FLAG_LONG_SHADER_NAMES ? 'lColor' : 'z';
 const L_LIGHT = FLAG_LONG_SHADER_NAMES ? 'lLight' : 'y';
 const L_CAMERA_DELTA = FLAG_LONG_SHADER_NAMES ? 'lCameraDelta' : 'x';
-const L_LIGHT_INDEX = FLAG_LONG_SHADER_NAMES ? 'lLightIndex' : 'w';
+const L_LIGHT_NDX = FLAG_LONG_SHADER_NAMES ? 'lLightIndex' : 'w';
 const L_LIGHT_DELTA = FLAG_LONG_SHADER_NAMES ? 'lLightDelta' : 'v';
 const L_SHADOW_POSITION = FLAG_LONG_SHADER_NAMES ? 'lShadowPosition' : 'u'
-const L_SHADOW_TEXTURE_COORDINATE = FLAG_LONG_SHADER_NAMES ? 'lShadowTextureCoordinate' : 't';
+const L_SHADOW_SCREEN_COORDINATE = FLAG_LONG_SHADER_NAMES ? 'lShadowTextureCoordinate' : 't';
+const L_SHADOW_DISTANCE = FLAG_LONG_SHADER_NAMES ? 'lShadowDistance' : 's';
 
 const PRECISION = 'highp';
 
@@ -84,32 +89,35 @@ void main() {
 const MAIN_FS = `
 precision ${PRECISION} float;
 
-uniform sampler2D ${U_SAMPLER};
+uniform sampler2D ${U_MODEL_TEXTURE};
 uniform vec3 ${U_CAMERA_POSITION};
-uniform mat4 ${U_PROJECTION_MATRIX};
 uniform vec2 ${U_LIGHT};
 uniform vec3 ${U_LIGHT_POSITIONS}[${CONST_MAX_LIGHTS}];
 uniform mat4 ${U_LIGHT_PROJECTIONS}[${CONST_MAX_LIGHTS}];
+uniform sampler2D ${U_LIGHT_TEXTURES};
 
 varying vec2 ${V_TEXURE_COORDINATE};
 varying vec4 ${V_POSITION};
 varying vec3 ${V_SURFACE_NORMAL};
 
 void main() {
-  vec3 ${L_COLOR}=texture2D(${U_SAMPLER}, ${V_TEXURE_COORDINATE}).rgb;
+  vec3 ${L_COLOR}=texture2D(${U_MODEL_TEXTURE}, ${V_TEXURE_COORDINATE}).rgb;
   float ${L_LIGHT}=pow(${L_COLOR}.r,${U_LIGHT}.x);
-  for (int ${L_LIGHT_INDEX}=0;${L_LIGHT_INDEX}<${CONST_MAX_LIGHTS};${L_LIGHT_INDEX}++){
-    if (${L_LIGHT_INDEX}<int(${U_LIGHT}.y)){
-      vec4 ${L_SHADOW_POSITION}=${U_LIGHT_PROJECTIONS}[${L_LIGHT_INDEX}]*(${V_POSITION});
-      vec3 ${L_SHADOW_TEXTURE_COORDINATE}=${L_SHADOW_POSITION}.xyz/${L_SHADOW_POSITION}.w;
-      if(length(${L_SHADOW_TEXTURE_COORDINATE}.xy)<1.0&&${L_SHADOW_TEXTURE_COORDINATE}.z>0.0) {
-        vec3 ${L_LIGHT_DELTA}=${U_LIGHT_POSITIONS}[${L_LIGHT_INDEX}]-${V_POSITION}.xyz;
-        ${L_LIGHT}+=max(0.0,dot(normalize(${L_LIGHT_DELTA}),normalize(${V_SURFACE_NORMAL})));
+  for (int ${L_LIGHT_NDX}=0;${L_LIGHT_NDX}<${CONST_MAX_LIGHTS};${L_LIGHT_NDX}++){
+    if (${L_LIGHT_NDX}<int(${U_LIGHT}.y)){
+      vec4 ${L_SHADOW_POSITION}=${U_LIGHT_PROJECTIONS}[${L_LIGHT_NDX}]*(${V_POSITION});
+      vec3 ${L_SHADOW_SCREEN_COORDINATE}=${L_SHADOW_POSITION}.xyz/${L_SHADOW_POSITION}.w;
+      if(length(${L_SHADOW_SCREEN_COORDINATE}.xy)<1.0&&${L_SHADOW_SCREEN_COORDINATE}.z>0.0) {
+        float ${L_SHADOW_DISTANCE}=(1.0-(texture2D(${U_LIGHT_TEXTURES},vec2(${L_SHADOW_SCREEN_COORDINATE}.x/2.0+0.5,${L_SHADOW_SCREEN_COORDINATE}.y/-2.0+0.5)).a))*${CONST_MAX_LIGHT_DISTANCE};
+        vec3 ${L_LIGHT_DELTA}=${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}]-${V_POSITION}.xyz;
+        if(${L_SHADOW_DISTANCE}+0.1>length(${L_LIGHT_DELTA})) {
+          ${L_LIGHT}+=pow(max(0.0,dot(normalize(${L_LIGHT_DELTA}),normalize(${V_SURFACE_NORMAL})))*pow(1.0-length(${L_SHADOW_SCREEN_COORDINATE}.xy),.2),2.0);
+        }
       }
     }
   }
   vec3 ${L_CAMERA_DELTA}=${U_CAMERA_POSITION}-${V_POSITION}.xyz;
-  gl_FragColor = vec4(${L_COLOR}*${L_LIGHT}, 1.0-length(${L_CAMERA_DELTA})/9.9);
+  gl_FragColor = vec4(${L_COLOR}*${L_LIGHT}, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});
 }
 `;
 
@@ -230,12 +238,9 @@ const initMainProgram = (gl: WebGLRenderingContext, modelsFaces: PerimeterPoint[
   gl.useProgram(main);
 
   const texture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, i);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.uniform1i(uniforms[U_SAMPLER_INDEX], 0);
-
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, i);
   if (FLAG_SQUARE_IMAGE) {
     gl.generateMipmap(gl.TEXTURE_2D);
   } else {
@@ -245,9 +250,7 @@ const initMainProgram = (gl: WebGLRenderingContext, modelsFaces: PerimeterPoint[
   }
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.uniform1i(uniforms[U_SAMPLER_INDEX], 0);
+  gl.uniform1i(uniforms[U_MODEL_TEXTURE_INDEX], 0);
 
   return {
     uniforms,
