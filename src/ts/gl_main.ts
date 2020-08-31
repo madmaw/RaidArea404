@@ -108,22 +108,29 @@ void main() {
       vec4 ${L_SHADOW_POSITION}=${U_LIGHT_PROJECTIONS}[${L_LIGHT_NDX}]*(${V_POSITION});
       vec3 ${L_SHADOW_SCREEN_COORDINATE}=${L_SHADOW_POSITION}.xyz/${L_SHADOW_POSITION}.w;
       if(length(${L_SHADOW_SCREEN_COORDINATE}.xy)<1.0&&${L_SHADOW_SCREEN_COORDINATE}.z>0.0) {
-        float ${L_SHADOW_DISTANCE}=(1.0-(texture2D(${U_LIGHT_TEXTURES},vec2(${L_SHADOW_SCREEN_COORDINATE}.x/2.0+0.5,${L_SHADOW_SCREEN_COORDINATE}.y/-2.0+0.5)).a))*${CONST_MAX_LIGHT_DISTANCE};
+        float ${L_SHADOW_DISTANCE}=((1.0-texture2D(${U_LIGHT_TEXTURES},vec2(${L_SHADOW_SCREEN_COORDINATE}.x/2.0+0.5,${L_SHADOW_SCREEN_COORDINATE}.y/2.0+0.5)).a))*${CONST_MAX_LIGHT_DISTANCE};
         vec3 ${L_LIGHT_DELTA}=${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}]-${V_POSITION}.xyz;
         if(${L_SHADOW_DISTANCE}+0.1>length(${L_LIGHT_DELTA})) {
-          ${L_LIGHT}+=pow(max(0.0,dot(normalize(${L_LIGHT_DELTA}),normalize(${V_SURFACE_NORMAL})))*pow(1.0-length(${L_SHADOW_SCREEN_COORDINATE}.xy),.2),2.0);
+          ${L_LIGHT}+=pow(max(0.0,dot(normalize(${L_LIGHT_DELTA}),normalize(${V_SURFACE_NORMAL})))*pow(length(${L_SHADOW_SCREEN_COORDINATE}.xy),.2),2.0);
         }
       }
     }
   }
   vec3 ${L_CAMERA_DELTA}=${U_CAMERA_POSITION}-${V_POSITION}.xyz;
-  gl_FragColor = vec4(${L_COLOR}*${L_LIGHT}, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});
+  if(${U_LIGHT}.y>0.0){
+    //gl_FragColor = vec4(${L_COLOR}*${L_LIGHT}, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});
+    gl_FragColor = vec4(${L_COLOR}*${L_LIGHT}, 1.0);
+  } else {
+    //gl_FragColor = vec4(${L_COLOR},1.0);
+    gl_FragColor = vec4(${L_COLOR}, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});
+  }
 }
 `;
 
 type MainProgramInputs = {
   uniforms: WebGLUniformLocation[],
   attributes: number[],
+  texture: WebGLTexture,
   modelBuffers: {
     vertexBuffer: WebGLBuffer,
     indexBuffer: WebGLBuffer,
@@ -234,7 +241,6 @@ const initMainProgram = (gl: WebGLRenderingContext, modelsFaces: PerimeterPoint[
       indexCount: indices.length,
     };
   });
-
   gl.useProgram(main);
 
   const texture = gl.createTexture();
@@ -253,6 +259,7 @@ const initMainProgram = (gl: WebGLRenderingContext, modelsFaces: PerimeterPoint[
   gl.uniform1i(uniforms[U_MODEL_TEXTURE_INDEX], 0);
 
   return {
+    texture,
     uniforms,
     attributes,
     modelBuffers,

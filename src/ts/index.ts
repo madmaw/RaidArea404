@@ -130,6 +130,45 @@ i.onload = () => {
         });
   });
 
+  const fakeFaces: PerimeterPoint[][] = [
+    [
+      {
+        position: [-1, -1, 1],
+        textureCoordinate: [0, 0],
+      },
+      {
+        position: [1, 1, 1],
+        textureCoordinate: [1, 1],
+      },
+      {
+        position: [1, -1, 1],
+        textureCoordinate: [1, 0],
+      },
+    ],
+    [
+      {
+        position: [-1, -1, 1],
+        textureCoordinate: [0, 0],
+      },
+      {
+        position: [-1, 1, 1],
+        textureCoordinate: [0, 1],
+      },
+      {
+        position: [1, 1, 1],
+        textureCoordinate: [1, 1],
+      },
+    ]
+  ];
+  modelsFaces.push([
+      fakeFaces,
+      fakeFaces,
+      fakeFaces,
+      fakeFaces,
+      fakeFaces,
+      fakeFaces,
+  ]);
+
   // convert the models into 3D models
   g.width = innerWidth;
   g.height = innerHeight;
@@ -138,8 +177,10 @@ i.onload = () => {
   const gl = g.getContext('webgl');
   const mainProgramInputs = initMainProgram(gl, modelsFaces);
 
-  l.width = 512;
-  l.height = 512;
+  if (FLAG_CANVAS_LIGHTING) {
+    l.width = CONST_LIGHTING_TEXTURE_DIMENSION;
+    l.height = CONST_LIGHTING_TEXTURE_DIMENSION;
+  }
 
   const lightingGLCanvases = [l];
   const lightingProgramInputs = lightingGLCanvases.map(c => initMainProgram(c.getContext('webgl'), modelsFaces));
@@ -159,14 +200,14 @@ i.onload = () => {
     lights: {
       lightPosition: Vector3,
       lightProjection: Matrix4,
-      lightTexture?: WebGLTexture,
-    }[]
+    }[],
+    renderBackFaces?: boolean | number,
   ) => {
 
-    gl.clearColor(0, 0, 0, 0);
-    gl.clearDepth(1);
+    //gl.clearColor(0, 0, 0, 0); already the default
+    //gl.clearDepth(1); already the default
     gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LESS);
+    //gl.depthFunc(gl.LESS); already the default
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     const {
@@ -189,6 +230,7 @@ i.onload = () => {
       [
         darknessFactor,
         lights.length
+        //0,
       ]
     );
     if (lights.length || !FLAG_AVOID_GL_WARNINGS) {
@@ -213,7 +255,7 @@ i.onload = () => {
         matrix4Translate(...entity.position),
         matrix4Rotate(-entity.zRotation, 0, 0, 1),
       ]);
-      entityRenderer(gl, inputs, entity.body, transform, entity.partTransforms || {});
+      entityRenderer(gl, inputs, entity.body, transform, entity.partTransforms || {}, renderBackFaces);
     });
   }
 
@@ -539,7 +581,7 @@ i.onload = () => {
     age: 0,
     rooms: [[
       {
-        cameraPosition: [1, 1, 2.8],
+        cameraPosition: [9, 9, 2.8],
         lightPosition: [4.5, 4.5, 3],
         lightProjection: matrix4MultiplyStack([
           matrix4Perspective(Math.tan(Math.PI/3), 1, .1, 9),
@@ -553,16 +595,23 @@ i.onload = () => {
           //   .02,
           //   COLLISION_TYPE_SENSOR
           // ),
+          makeStaticEntity( // fake
+            models.length,
+            [5, 5, 0],
+            .888,
+            COLLISION_TYPE_SENSOR,
+            Math.PI/4
+          ),
           makeStaticEntity( // chair
             MODEL_ID_CHAIR,
-            [3, 6, 0],
+            [2, 4, 0],
             .15,
             COLLISION_TYPE_STATIC,
             -Math.PI/6
           ),
           makeStaticEntity( // table
             MODEL_ID_TABLE,
-            [5, 3, 0],
+            [8, 5, 0],
             .15,
             COLLISION_TYPE_STATIC,
             Math.PI/2
@@ -620,33 +669,89 @@ i.onload = () => {
       room => room.lightPosition && room
     );
 
-    const textureIds = litRooms.map((room, j) => {
-      const canvas = lightingGLCanvases[j];
-      renderer(
-        canvas.getContext('webgl'),
-        lightingProgramInputs[j],
-        world,
-        engineState.visibleRoom[0],
-        engineState.visibleRoom[1],
-        room.lightProjection,
-        room.lightPosition,
-        1,
-        []
-      );
+    gl.activeTexture(gl.TEXTURE1);
+
+    litRooms.map((room, j) => {
       // TODO render directly to the texture
       //const lightingTexture = lightingTextures[i];
       const lightingTexture = gl.createTexture();
-
-      gl.activeTexture(gl.TEXTURE1+j);
       gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
-      gl.generateMipmap(gl.TEXTURE_2D);
-      return j + 1;
+      if (FLAG_CANVAS_LIGHTING) {
+        const lightingGL = lightingGLCanvases[j].getContext('webgl');
+        lightingGL.viewport(0, 0, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
+        renderer(
+          lightingGL,
+          lightingProgramInputs[j],
+          world,
+          engineState.visibleRoom[0],
+          engineState.visibleRoom[1],
+          matrix4Multiply(matrix4Scale(1, -1, 1), room.lightProjection),
+          room.lightPosition,
+          1,
+          [],
+          1
+        );
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, lightingGL.canvas);
+        if (FLAG_SQUARE_IMAGE) {
+          // should always be square
+          gl.generateMipmap(gl.TEXTURE_2D);
+        } else {
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+      } else {
+        // TODO can probably force this call without the null
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        const fb = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, lightingTexture, 0);
+
+        // create a depth renderbuffer
+        const depthBuffer = gl.createRenderbuffer();
+        gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
+
+
+        gl.viewport(0, 0, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
+        // put something else in the active texture so we don't attempt to read and write to the same texture
+        gl.bindTexture(gl.TEXTURE_2D, mainProgramInputs.texture);
+        renderer(
+          gl,
+          mainProgramInputs,
+          world,
+          engineState.visibleRoom[0],
+          engineState.visibleRoom[1],
+          room.lightProjection,
+          room.lightPosition,
+          1,
+          [],
+        );
+        gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
+        if (FLAG_SQUARE_IMAGE) {
+          // should always be square
+          gl.generateMipmap(gl.TEXTURE_2D);
+        } else {
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+
+        // gl.activeTexture(gl.TEXTURE0);
+        // gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
+
+      }
     });
-    gl.uniform1iv(
+    gl.uniform1i(
       mainProgramInputs.uniforms[U_LIGHT_TEXTURES_INDEX],
-      textureIds,
+      1,
     );
+    if (!FLAG_CANVAS_LIGHTING) {
+      // switch back to rendering to canvas
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, innerWidth, innerHeight);
+    }
 
     renderer(
       gl,
@@ -656,9 +761,11 @@ i.onload = () => {
       engineState.visibleRoom[1],
       cameraProjection,
       cameraPosition,
-      4,
+      1,
       litRooms,
     );
+
+    gl.bindTexture(gl.TEXTURE_2D, mainProgramInputs.texture);
 
   };
   update(0);
