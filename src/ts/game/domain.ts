@@ -31,6 +31,7 @@ type Entity = {
   position: Vector3,
   velocity: Vector3,
   radius: number,
+  palette: Vector3[],
   perimeter?: Vector2[] | 0,
   depth: number,
   zRotation: number,
@@ -50,7 +51,9 @@ type BodyPart = {
   id?: number,
   modelId: number,
   children?: BodyPart[],
+  paletteIndices?: number[],
   flipY?: boolean | number,
+  badges?: Vector4[],
 }
 
 type Geometry = {

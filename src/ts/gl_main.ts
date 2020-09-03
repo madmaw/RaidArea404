@@ -39,6 +39,15 @@ const U_LIGHT_PROJECTIONS = FLAG_LONG_SHADER_NAMES ? 'uLightProjections' : 'G';
 const U_LIGHT_TEXTURES_INDEX = 7;
 const U_LIGHT_TEXTURES = FLAG_LONG_SHADER_NAMES ? 'uLightTextures' : 'H';
 
+const U_PALETTE_INDEX = 8;
+const U_PALETTE = FLAG_LONG_SHADER_NAMES ? 'uPalette' : 'I';
+
+const U_BADGES_INDEX = 9;
+const U_BADGES = FLAG_LONG_SHADER_NAMES ? 'uBadges' : 'J';
+
+const U_BADGE_TEXTURE_INDEX = 10;
+const U_BADGE_TEXTURE = FLAG_LONG_SHADER_NAMES ? 'uBadgeTexture' : 'K';
+
 const UNIFORM_NAMES = FLAG_LONG_SHADER_NAMES
     ? [
       U_MODEL_VIEW_MATRIX,
@@ -49,12 +58,17 @@ const UNIFORM_NAMES = FLAG_LONG_SHADER_NAMES
       U_LIGHT_POSITIONS,
       U_LIGHT_PROJECTIONS,
       U_LIGHT_TEXTURES,
+      U_PALETTE,
+      U_BADGES,
+      U_BADGE_TEXTURE,
     ]
-    : 'ABCDEFGH'.split('');
+    : 'ABCDEFGHIJK'.split('');
 
 const V_TEXURE_COORDINATE = FLAG_LONG_SHADER_NAMES ? 'vTextureCoordinate' : 'Z';
 const V_POSITION = FLAG_LONG_SHADER_NAMES ? 'vPosition' : 'Y';
 const V_SURFACE_NORMAL = FLAG_LONG_SHADER_NAMES ? 'vSurfaceNormal' : 'X';
+const V_ORIGINAL_POSITION = FLAG_LONG_SHADER_NAMES ? 'vOriginalPosition' : 'W';
+const V_ORIGINAL_SURFACE_NORMAL = FLAG_LONG_SHADER_NAMES ? 'vOriginalSurfaceNormal' : 'V';
 
 const L_COLOR = FLAG_LONG_SHADER_NAMES ? 'lColor' : 'z';
 const L_LIGHT = FLAG_LONG_SHADER_NAMES ? 'lLight' : 'y';
@@ -64,6 +78,12 @@ const L_LIGHT_DELTA = FLAG_LONG_SHADER_NAMES ? 'lLightDelta' : 'v';
 const L_SHADOW_POSITION = FLAG_LONG_SHADER_NAMES ? 'lShadowPosition' : 'u'
 const L_SHADOW_SCREEN_COORDINATE = FLAG_LONG_SHADER_NAMES ? 'lShadowTextureCoordinate' : 't';
 const L_SHADOW_DISTANCE = FLAG_LONG_SHADER_NAMES ? 'lShadowDistance' : 's';
+const L_PALETTE_NDX = FLAG_LONG_SHADER_NAMES ? 'lPaletteIndex' : 'r';
+const L_BADGE_NDX = FLAG_LONG_SHADER_NAMES ? 'lBadgeIndex' : 'q';
+const L_BADGE = FLAG_LONG_SHADER_NAMES ? 'lBadge' : 'p';
+const L_ANGLE = FLAG_LONG_SHADER_NAMES ? 'lAngle' : 'o';
+const L_Y = FLAG_LONG_SHADER_NAMES ? 'lY' : 'n';
+const L_BADGE_COLOR = FLAG_LONG_SHADER_NAMES ? 'lBadgeColor' : 'm';
 
 const PRECISION = 'highp';
 
@@ -78,10 +98,14 @@ uniform mat4 ${U_PROJECTION_MATRIX};
 varying vec2 ${V_TEXURE_COORDINATE};
 varying vec3 ${V_SURFACE_NORMAL};
 varying vec4 ${V_POSITION};
+varying vec4 ${V_ORIGINAL_POSITION};
+varying vec3 ${V_ORIGINAL_SURFACE_NORMAL};
 
 void main() {
   ${V_POSITION}=${U_MODEL_VIEW_MATRIX} * ${A_VERTEX_POSITION};
   ${V_TEXURE_COORDINATE}=${A_TEXTURE_COORDINATE};
+  ${V_ORIGINAL_POSITION}=${A_VERTEX_POSITION};
+  ${V_ORIGINAL_SURFACE_NORMAL}=${A_SURFACE_NORMAL};
   ${V_SURFACE_NORMAL}=((${U_MODEL_VIEW_MATRIX} * vec4(${A_SURFACE_NORMAL},0.0)) - (${U_MODEL_VIEW_MATRIX} * vec4(0.0))).xyz;
   gl_Position=${U_PROJECTION_MATRIX} * ${V_POSITION};
 }
@@ -95,23 +119,54 @@ uniform vec2 ${U_LIGHT};
 uniform vec3 ${U_LIGHT_POSITIONS}[${CONST_MAX_LIGHTS}];
 uniform mat4 ${U_LIGHT_PROJECTIONS}[${CONST_MAX_LIGHTS}];
 uniform sampler2D ${U_LIGHT_TEXTURES};
+uniform vec3 ${U_PALETTE}[${CONST_MAX_PALETTE}];
+uniform vec4 ${U_BADGES}[${CONST_MAX_BADGES}];
+uniform sampler2D ${U_BADGE_TEXTURE};
 
 varying vec2 ${V_TEXURE_COORDINATE};
 varying vec4 ${V_POSITION};
 varying vec3 ${V_SURFACE_NORMAL};
+varying vec4 ${V_ORIGINAL_POSITION};
+varying vec3 ${V_ORIGINAL_SURFACE_NORMAL};
 
 void main() {
   vec3 ${L_COLOR}=texture2D(${U_MODEL_TEXTURE}, ${V_TEXURE_COORDINATE}).rgb;
-  float ${L_LIGHT}=pow(${L_COLOR}.r,${U_LIGHT}.x);
+  float ${L_LIGHT}=${L_COLOR}.r;
+  for(int ${L_PALETTE_NDX}=0;${L_PALETTE_NDX}<${CONST_MAX_PALETTE};${L_PALETTE_NDX}++){
+    if(float(${L_PALETTE_NDX})<=${L_LIGHT}*${CONST_MAX_PALETTE-1}.1){
+      ${L_COLOR}=${U_PALETTE}[${L_PALETTE_NDX}];
+    }
+  }
+  ${L_LIGHT}=pow(${L_COLOR}.r,${U_LIGHT}.x);
+
+  for(int ${L_BADGE_NDX}=0;${L_BADGE_NDX}<${CONST_MAX_BADGES};${L_BADGE_NDX}++) {
+    vec4 ${L_BADGE}=${U_BADGES}[${L_BADGE_NDX}];
+    float ${L_ANGLE}=-atan(${V_ORIGINAL_SURFACE_NORMAL}.y,${V_ORIGINAL_SURFACE_NORMAL}.x);
+    if(${L_BADGE}.x>0.0&&abs((${L_BADGE}.z-${V_ORIGINAL_POSITION}.z)/${L_BADGE}.x)<1.0&&cos(${L_BADGE}.y+${L_ANGLE})>0.0) {
+      vec2 rotatedOriginalPosition=mat2(cos(${L_ANGLE}),-sin(${L_ANGLE}),sin(${L_ANGLE}),cos(${L_ANGLE}))*${V_ORIGINAL_POSITION}.xy;
+      float ${L_Y}=(rotatedOriginalPosition.y-tan(${L_BADGE}.y+${L_ANGLE})*rotatedOriginalPosition.x)/(${L_BADGE}.x);
+      if(abs(${L_Y})<1.0){
+        vec4 ${L_BADGE_COLOR}=texture2D(
+          ${U_BADGE_TEXTURE},
+          vec2(
+            ${L_Y}*0.5/${CONST_BADGE_CHARACTERS_PER_ROW}.0+(mod(${L_BADGE}.w,${CONST_BADGE_CHARACTERS_PER_ROW}.0))/${CONST_BADGE_CHARACTERS_PER_ROW}.0-${1-.5/CONST_BADGE_CHARACTERS_PER_ROW},
+            (${L_BADGE}.z-${V_ORIGINAL_POSITION}.z)*0.5/(${L_BADGE}.x*${CONST_BADGE_CHARACTERS_PER_ROW}.0)+floor(${L_BADGE}.w/${CONST_BADGE_CHARACTERS_PER_ROW}.0)/${CONST_BADGE_CHARACTERS_PER_ROW}.0-${1-.5/CONST_BADGE_CHARACTERS_PER_ROW}
+          )
+        );
+        ${L_COLOR}=mix(${L_COLOR},${L_BADGE_COLOR}.rgb,${L_BADGE_COLOR}.a);
+        ${L_LIGHT}=mix(${L_LIGHT},0.3,${L_BADGE_COLOR}.a);
+      }
+    }
+  }
   for (int ${L_LIGHT_NDX}=0;${L_LIGHT_NDX}<${CONST_MAX_LIGHTS};${L_LIGHT_NDX}++){
     if (${L_LIGHT_NDX}<int(${U_LIGHT}.y)){
       vec4 ${L_SHADOW_POSITION}=${U_LIGHT_PROJECTIONS}[${L_LIGHT_NDX}]*(${V_POSITION});
       vec3 ${L_SHADOW_SCREEN_COORDINATE}=${L_SHADOW_POSITION}.xyz/${L_SHADOW_POSITION}.w;
       if(length(${L_SHADOW_SCREEN_COORDINATE}.xy)<1.0&&${L_SHADOW_SCREEN_COORDINATE}.z>0.0) {
-        float ${L_SHADOW_DISTANCE}=((1.0-texture2D(${U_LIGHT_TEXTURES},vec2(${L_SHADOW_SCREEN_COORDINATE}.x/2.0+0.5,${L_SHADOW_SCREEN_COORDINATE}.y/2.0+0.5)).a))*${CONST_MAX_LIGHT_DISTANCE};
+        float ${L_SHADOW_DISTANCE}=((1.0-texture2D(${U_LIGHT_TEXTURES},${L_SHADOW_SCREEN_COORDINATE}.xy/2.0+0.5).a))*${CONST_MAX_LIGHT_DISTANCE};
         vec3 ${L_LIGHT_DELTA}=${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}]-${V_POSITION}.xyz;
         if(${L_SHADOW_DISTANCE}+0.1>length(${L_LIGHT_DELTA})) {
-          ${L_LIGHT}+=pow(max(0.0,dot(normalize(${L_LIGHT_DELTA}),normalize(${V_SURFACE_NORMAL})))*pow(length(${L_SHADOW_SCREEN_COORDINATE}.xy),.2),2.0);
+          ${L_LIGHT}+=pow(max(0.0,dot(normalize(${L_LIGHT_DELTA}),normalize(${V_SURFACE_NORMAL})))*(1.0-pow(length(${L_SHADOW_SCREEN_COORDINATE}.xy),9.9)),2.0);
         }
       }
     }
@@ -122,7 +177,7 @@ void main() {
     gl_FragColor = vec4(${L_COLOR}*${L_LIGHT}, 1.0);
   } else {
     //gl_FragColor = vec4(${L_COLOR},1.0);
-    gl_FragColor = vec4(${L_COLOR}, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});
+    gl_FragColor = vec4(${L_COLOR}*${L_LIGHT}, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});
   }
 }
 `;
@@ -130,7 +185,6 @@ void main() {
 type MainProgramInputs = {
   uniforms: WebGLUniformLocation[],
   attributes: number[],
-  texture: WebGLTexture,
   modelBuffers: {
     vertexBuffer: WebGLBuffer,
     indexBuffer: WebGLBuffer,
@@ -243,23 +297,7 @@ const initMainProgram = (gl: WebGLRenderingContext, modelsFaces: PerimeterPoint[
   });
   gl.useProgram(main);
 
-  const texture = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, i);
-  if (FLAG_SQUARE_IMAGE) {
-    gl.generateMipmap(gl.TEXTURE_2D);
-  } else {
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  }
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-  gl.uniform1i(uniforms[U_MODEL_TEXTURE_INDEX], 0);
-
   return {
-    texture,
     uniforms,
     attributes,
     modelBuffers,

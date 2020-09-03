@@ -9,6 +9,45 @@
 // v.src = 'c.bmp';
 //v.onload = () => console.log('loaded');
 
+// draw some stuff onto our local canvas
+d.width = CONST_BADGE_CANVAS_DIMENSION;
+d.height = CONST_BADGE_CANVAS_DIMENSION;
+const context = d.getContext('2d');
+const badgeColors: string[] = ['', 'red'];
+const badgeDefinitions: ([number, number] | [number])[] = [
+  // 0-9A-Z, punctuation
+  [48, 43],
+  // open mouth
+  [0x2302],
+  // grimace
+  [0x2313],
+  // smile/sad
+  [0x2322, 2],
+  // emoji faces
+  [0x1F600, 69],
+  // animals
+  [0x1F400, 66],
+  // painting
+  [0x1F5BC],
+  // food
+  [0x1F332, 34]];
+let badgeCount = 0;
+context.font = `${CONST_BADGE_DIMENSION}px monospace`;
+badgeColors.map(textColor => {
+  context.fillStyle = textColor;
+  badgeDefinitions.map(([codePoint, count]) => {
+    for (let k=0; k<(count||1); k++) {
+      const char = String.fromCodePoint(codePoint + k);
+      context.fillText(
+        char,
+        (badgeCount%CONST_BADGE_CHARACTERS_PER_ROW)*CONST_BADGE_DIMENSION,
+        ((badgeCount/CONST_BADGE_CHARACTERS_PER_ROW|0)+.85)*CONST_BADGE_DIMENSION
+      );
+      badgeCount++;
+    }
+  });
+});
+
 i.onload = () => {
   const iAspectRatio = i.width/i.height;
   const windowAspectRatio = innerWidth/innerHeight;
@@ -175,18 +214,53 @@ i.onload = () => {
   // g.width = 320;
   // g.height = 240;
   const gl = g.getContext('webgl');
+
+  const lightingTexture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+  const lightingFrameBuffer = gl.createFramebuffer();
+
+  const lightingDepthBuffer = gl.createRenderbuffer();
+  gl.bindRenderbuffer(gl.RENDERBUFFER, lightingDepthBuffer);
+  gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
+
   const mainProgramInputs = initMainProgram(gl, modelsFaces);
+
+  const modelTexture = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, modelTexture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, i);
+  if (FLAG_SQUARE_IMAGE) {
+    gl.generateMipmap(gl.TEXTURE_2D);
+  } else {
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  }
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.uniform1i(mainProgramInputs.uniforms[U_MODEL_TEXTURE_INDEX], 0);
+
+  const badgeTexture = gl.createTexture();
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, badgeTexture);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, d);
+  if (FLAG_SQUARE_IMAGE) {
+    gl.generateMipmap(gl.TEXTURE_2D);
+  } else {
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  }
+  gl.uniform1i(mainProgramInputs.uniforms[U_BADGE_TEXTURE_INDEX], 2);
 
   if (FLAG_CANVAS_LIGHTING) {
     l.width = CONST_LIGHTING_TEXTURE_DIMENSION;
     l.height = CONST_LIGHTING_TEXTURE_DIMENSION;
   }
-
-  const lightingGLCanvases = [l];
-  const lightingProgramInputs = lightingGLCanvases.map(c => initMainProgram(c.getContext('webgl'), modelsFaces));
-  const lightingTextures = lightingGLCanvases.map(l => {
-    return gl.createTexture();
-  })
+  const lightingProgramInputs = FLAG_CANVAS_LIGHTING
+      ? initMainProgram(l.getContext('webgl'), modelsFaces)
+      : undefined;
 
   const renderer = (
     gl: WebGLRenderingContext,
@@ -255,17 +329,18 @@ i.onload = () => {
         matrix4Translate(...entity.position),
         matrix4Rotate(-entity.zRotation, 0, 0, 1),
       ]);
-      entityRenderer(gl, inputs, entity.body, transform, entity.partTransforms || {}, renderBackFaces);
+      bodyPartRenderer(gl, inputs, entity.body, transform, entity.partTransforms || {}, entity.palette, renderBackFaces);
     });
   }
 
-  const entityRenderer = (
+  const bodyPartRenderer = (
     gl: WebGLRenderingContext,
     inputs: MainProgramInputs,
     part: BodyPart,
     transform: Matrix4,
     partTransforms: {[_: number]: Matrix4},
-    renderBackFaces?: boolean | number
+    palette: Vector3[],
+    renderBackFaces?: boolean | number,
   ) => {
     const {
       attributes,
@@ -339,13 +414,25 @@ i.onload = () => {
     );
     gl.enableVertexAttribArray(attributes[A_SURFACE_NORMAL_INDEX]);
 
+    const paletteIndices = part.paletteIndices || [0, 1, 2, 3];
+    gl.uniform3fv(
+      inputs.uniforms[U_PALETTE_INDEX],
+      new Array(CONST_MAX_PALETTE).fill(0).flatMap((_, i) => palette[paletteIndices[i%paletteIndices.length]%palette.length]),
+    );
+    gl.uniform4fv(
+      inputs.uniforms[U_BADGES_INDEX],
+      new Array(CONST_MAX_BADGES).fill(0).flatMap((_, i) => part.badges && part.badges[i] || [0, 0, 0, 0]),
+    );
+
+
+
     // indices
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
     gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
 
     part.children?.map(child => {
-      entityRenderer(gl, inputs, child, m, partTransforms, renderBackFaces);
+      bodyPartRenderer(gl, inputs, child, m, partTransforms, palette, renderBackFaces);
     });
   };
 
@@ -356,7 +443,9 @@ i.onload = () => {
     scale: number,
     collisionType: CollisionType,
     zRotation?: number,
+    palette?: Vector3[],
   ): Entity {
+    palette = palette || new Array(4).fill(0).map((_, i) => new Array(3).fill(i/3) as Vector3);
     const geometry = mainProgramInputs.modelBuffers[modelId];
     const perimeter = collisionType < 0 // static collision
         ? getPerimeter(models[modelId], modelPerimeters[modelId], FACE_TOP)
@@ -383,6 +472,7 @@ i.onload = () => {
         ]),
         modelId,
       },
+      palette,
       velocity: [0, 0, 0],
       zRotation: zRotation || 0,
       collisionType,
@@ -392,18 +482,21 @@ i.onload = () => {
 
   const humanBody: BodyPart = {
     id: PART_ID_TORSO,
-    attachmentPoint: [0, 0, 1.07],
+    attachmentPoint: [0, 0, .9],
+    paletteIndices: [2, 1],
     attachmentTransform: matrix4MultiplyStack([
-
       matrix4Scale(.08),
       matrix4Translate(0, 0, mainProgramInputs.modelBuffers[MODEL_ID_TORSO].halfBounds[2]),
     ]),
+    badges: [[1.2, Math.PI/5, 0, 125]],
     modelId: MODEL_ID_TORSO,
     children: [
       {
         id: PART_ID_HEAD,
         modelId: MODEL_ID_HEAD,
         attachmentPoint: [.2, 0, 5.5],
+        paletteIndices: [0, 2, 2, 3],
+        badges: [[2, 0, 0, 44]],
         attachmentTransform: matrix4MultiplyStack([
           matrix4Scale(.45),
         ]),
@@ -411,7 +504,8 @@ i.onload = () => {
       {
         id: PART_ID_RIGHT_UPPER_ARM,
         modelId: MODEL_ID_UPPER_ARM,
-        attachmentPoint: [0, 2, 2.5],
+        attachmentPoint: [-.2, 2, 2.5],
+        paletteIndices: [1],
         attachmentTransform: matrix4MultiplyStack([
           // matrix4Translate(0, 5, 1),
           // matrix4Rotate(0, 0, 1, Math.PI/2),
@@ -419,6 +513,7 @@ i.onload = () => {
           //matrix4Rotate(0, 1, 0, -Math.PI/5),
           //matrix4Rotate(1, 0, 0, -Math.PI/2),
           matrix4Scale(.8),
+          matrix4Rotate(-Math.PI/30, 1, 0, 0),
           matrix4Translate(0, 0, -2),
           matrix4Rotate(-Math.PI/2, 0, 0, 1),
         ]),
@@ -427,8 +522,10 @@ i.onload = () => {
             id: PART_ID_RIGHT_LOWER_ARM,
             modelId: MODEL_ID_FOREARM,
             attachmentPoint: [0, 0, -3],
+            paletteIndices: [1, 2, 2],
             attachmentTransform: matrix4MultiplyStack([
-              matrix4Rotate(Math.PI/5, 1, 0, 0),
+              matrix4Rotate(Math.PI/6, 1, 0, 0),
+              matrix4Rotate(Math.PI/9, 0, 0, 1),
               matrix4Translate(1, -.5, -2.8),
             ]),
           }
@@ -438,13 +535,15 @@ i.onload = () => {
         id: PART_ID_LEFT_UPPER_ARM,
         modelId: MODEL_ID_UPPER_ARM,
         flipY: 1,
-        attachmentPoint: [0, -2, 2.5],
+        attachmentPoint: [-.2, -2, 2.5],
+        paletteIndices: [1],
         attachmentTransform: matrix4MultiplyStack([
           // matrix4Translate(0, 5, 1),
            //matrix4Rotate(0, 1, 0, Math.PI/4),
           //
           //matrix4Rotate(1, 0, 0, Math.PI/5),
           matrix4Scale(.8),
+          matrix4Rotate(-Math.PI/30, 1, 0, 0),
           matrix4Translate(0, 0, -2),
           //matrix4Rotate(0, 0, 1, Math.PI),
           matrix4Rotate(-Math.PI/2, 0, 0, 1),
@@ -454,8 +553,11 @@ i.onload = () => {
             id: PART_ID_LEFT_LOWER_ARM,
             modelId: MODEL_ID_FOREARM,
             attachmentPoint: [0, 0, -3],
+            paletteIndices: [1, 2, 2],
             attachmentTransform: matrix4MultiplyStack([
-              matrix4Rotate(Math.PI/5, 1, 0, 0),
+              matrix4Rotate(Math.PI/6, 1, 0, 0),
+              //matrix4Rotate(Math.PI/9, 0, 1, 0),
+              matrix4Rotate(Math.PI/9, 0, 0, 1),
               matrix4Translate(1, -.5, -2.8),
             ]),
           }
@@ -465,17 +567,19 @@ i.onload = () => {
       {
         id: PART_ID_RIGHT_UPPER_LEG,
         modelId: MODEL_ID_THIGH,
-        attachmentPoint: [0, -.5, -4],
+        attachmentPoint: [2, -.3, -2.5],
+        paletteIndices: [1],
         attachmentTransform: matrix4MultiplyStack([
           matrix4Rotate(Math.PI/20, 1, 0, 0),
-          matrix4Translate(0, 0, -3),
+          matrix4Translate(-2, 0, -4),
           matrix4Rotate(Math.PI * .55, 0, 0, 1),
         ]),
         children: [
           {
             id: PART_ID_RIGHT_LOWER_LEG,
             modelId: MODEL_ID_CALF,
-            attachmentPoint: [0, 0, -5],
+            attachmentPoint: [0, 0, -3.5],
+            paletteIndices: [1, 0, 1],
             attachmentTransform: matrix4MultiplyStack([
               matrix4Rotate(Math.PI/20, 0, 1, 0),
               matrix4Translate(0, 0, -2.3),
@@ -487,18 +591,20 @@ i.onload = () => {
       {
         id: PART_ID_LEFT_UPPER_LEG,
         modelId: MODEL_ID_THIGH,
-        attachmentPoint: [0, .5, -4],
+        attachmentPoint: [2, .3, -2.5],
+        paletteIndices: [1],
         flipY: 1,
         attachmentTransform: matrix4MultiplyStack([
           matrix4Rotate(Math.PI/20, 1, 0, 0),
-          matrix4Translate(0, 0, -3),
+          matrix4Translate(-2, 0, -4),
           matrix4Rotate(Math.PI * .55, 0, 0, 1),
         ]),
         children: [
           {
             id: PART_ID_LEFT_LOWER_LEG,
             modelId: MODEL_ID_CALF,
-            attachmentPoint: [0, 0, -5],
+            attachmentPoint: [0, 0, -3.5],
+            paletteIndices: [1, 0, 1],
             attachmentTransform: matrix4MultiplyStack([
               matrix4Rotate(Math.PI/20, 0, 1, 0),
               matrix4Translate(0, 0, -2.3),
@@ -512,17 +618,23 @@ i.onload = () => {
 
   const player: Entity = {
     id: nextEntityId++,
+    palette: [
+      [.1, .1, .2], // hair
+      [.7, .4, .1], // shirt
+      [.7, .6, .6], // skin
+      [.6, 1, 1], // eyes
+    ],
     body: humanBody,
-    position: [3, 2, 0],
+    position: [7, 8, 0],
     depth: 1.5,
     radius: .2,
     velocity: [0, 0, 0],
     collisionType: COLLISION_TYPE_DYNAMIC,
-    zRotation: Math.PI,
+    zRotation: 0,
     intelligence: INTELLIGENCE_USER_CONTROLLED,
     animations:{
       [ACTION_WALK]: {
-        frameDuration: 400,
+        frameDuration: 300,
         keyFrames: makeWalkCycle(1)
       }
     },
@@ -531,21 +643,43 @@ i.onload = () => {
   const floors: Entity[] = new Array(ROOM_DIMENSION).fill(0).flatMap((v, x) => {
     return new Array(ROOM_DIMENSION).fill(0).flatMap((v, y) => {
       return [
+        // floor
         makeStaticEntity(
           MODEL_ID_WALL,
           [x + .5, y + .5, -WALL_HEIGHT/WALL_WIDTH],
           1/WALL_WIDTH,
           COLLISION_TYPE_NONE,
+          0,
+          [
+            [.2, .3, .2],
+            [.2, .3, .2],
+            [.1, .2, .1],
+            [.1, .2, .1],
+          ],
         ),
+        //ceiling
         makeStaticEntity(
           MODEL_ID_WALL,
           [x + .5, y + .5, WALL_HEIGHT/WALL_WIDTH],
           1/WALL_WIDTH,
           COLLISION_TYPE_NONE,
+          0,
+          [
+            [.3, .3, .5],
+            [.3, .3, .5],
+            [.3, .3, .5],
+            x == 6 && y == 6 ? [1, 1, 1] : [.3, .3, .5],
+          ],
         ),
       ]
     })
   });
+  const wallPalette: Vector3[] = [
+    [.1, .1, .1],
+    [.6, .6, .5],
+    [.3, .3, .5],
+    [.6, .6, .5],
+  ];
   const walls: Entity[] = new Array(ROOM_DIMENSION).fill(0).flatMap((v, i) => {
 
     return [
@@ -554,67 +688,105 @@ i.onload = () => {
         [i + .5, ROOM_DIMENSION +.5, i == 5 ? -WALL_HEIGHT/WALL_WIDTH : 0],
         1/WALL_WIDTH,
         COLLISION_TYPE_STATIC,
+        0,
+        wallPalette
       ),
       makeStaticEntity(
         MODEL_ID_WALL,
         [ROOM_DIMENSION +.5, i + .5, 0],
         1/WALL_WIDTH,
         COLLISION_TYPE_STATIC,
+        0,
+        wallPalette
       ),
       makeStaticEntity(
         MODEL_ID_WALL,
         [i +.5, -.5, i == 5 ? -WALL_HEIGHT/WALL_WIDTH : 0],
         1/WALL_WIDTH,
         COLLISION_TYPE_STATIC,
+        0,
+        wallPalette
       ),
       makeStaticEntity(
         MODEL_ID_WALL,
         [-.5, i + .5, 0],
         1/WALL_WIDTH,
         COLLISION_TYPE_STATIC,
+        0,
+        wallPalette
       )
     ];
   });
+
+  walls.map(wall => wall.body.badges = [[1, Math.PI/2, 0, 178]]);
 
   const world: World = {
     bounds: [1, 1],
     age: 0,
     rooms: [[
       {
-        cameraPosition: [9, 9, 2.8],
+        cameraPosition: [8, 8, 2.5],
         lightPosition: [4.5, 4.5, 3],
         lightProjection: matrix4MultiplyStack([
-          matrix4Perspective(Math.tan(Math.PI/3), 1, .1, 9),
+          matrix4Perspective(Math.tan(Math.PI/2.5), 1, .1, 9),
           matrix4Rotate(-0, 1, 0, 0),
         ]),
         entities: [
           player,
-          // makeEntity( // spanner
-          //   modelBuffers[2],
-          //   [1.5, 1.5, 0],
-          //   .02,
-          //   COLLISION_TYPE_SENSOR
+          // makeStaticEntity( // fake
+          //   models.length,
+          //   [5, 5, 0],
+          //   .888,
+          //   COLLISION_TYPE_SENSOR,
+          //   Math.PI/4
           // ),
-          makeStaticEntity( // fake
-            models.length,
-            [5, 5, 0],
-            .888,
-            COLLISION_TYPE_SENSOR,
-            Math.PI/4
+          makeStaticEntity( // chair
+            MODEL_ID_CHAIR,
+            [3.8, 5, 0],
+            .13,
+            COLLISION_TYPE_STATIC,
+            Math.PI/6,
+            [
+              [.5, .5, .6],
+              [.3, .3, .4],
+              [.3, .3, .4],
+            ],
           ),
           makeStaticEntity( // chair
             MODEL_ID_CHAIR,
-            [2, 4, 0],
-            .15,
+            [6.2, 5, 0],
+            .1,
             COLLISION_TYPE_STATIC,
-            -Math.PI/6
+            Math.PI,
+            [
+              [.5, .5, .6],
+              [.3, .3, .4],
+              [.3, .3, .4],
+            ],
           ),
           makeStaticEntity( // table
             MODEL_ID_TABLE,
-            [8, 5, 0],
-            .15,
+            [5, 5, 0],
+            .12,
             COLLISION_TYPE_STATIC,
-            Math.PI/2
+            0,
+            [
+              [.5, .4, .3],
+              [.5, .5, .6],
+            ],
+          ),
+          makeStaticEntity( // spanner
+            MODEL_ID_SPANNER,
+            [5, 5.5, mainProgramInputs.modelBuffers[MODEL_ID_TABLE].halfBounds[2]*2*.12],
+            .03,
+            COLLISION_TYPE_SENSOR,
+            Math.PI*2/3,
+            [
+              [.3, .3, .3],
+              [.6, .6, .7],
+              [.6, .6, .7],
+              [.6, .6, .7],
+            ]
           ),
           ...floors,
           ...walls
@@ -662,26 +834,25 @@ i.onload = () => {
 
     updater(world, engineState, diff);
 
+    // TODO sort by closest first
     const litRooms = iterateAdjoiningRooms(
       world,
       engineState.visibleRoom[0],
       engineState.visibleRoom[1],
       room => room.lightPosition && room
-    );
+    ).slice(0, CONST_MAX_LIGHTS);
 
     gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
 
-    litRooms.map((room, j) => {
-      // TODO render directly to the texture
-      //const lightingTexture = lightingTextures[i];
-      const lightingTexture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
+    litRooms.map(room => {
       if (FLAG_CANVAS_LIGHTING) {
-        const lightingGL = lightingGLCanvases[j].getContext('webgl');
+        const lightingGL = l.getContext('webgl');
         lightingGL.viewport(0, 0, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
+
         renderer(
           lightingGL,
-          lightingProgramInputs[j],
+          lightingProgramInputs,
           world,
           engineState.visibleRoom[0],
           engineState.visibleRoom[1],
@@ -691,32 +862,17 @@ i.onload = () => {
           [],
           1
         );
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, lightingGL.canvas);
-        if (FLAG_SQUARE_IMAGE) {
-          // should always be square
-          gl.generateMipmap(gl.TEXTURE_2D);
-        } else {
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        }
       } else {
-        // TODO can probably force this call without the null
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        const fb = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, lightingFrameBuffer);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, lightingTexture, 0);
 
-        // create a depth renderbuffer
-        const depthBuffer = gl.createRenderbuffer();
-        gl.bindRenderbuffer(gl.RENDERBUFFER, depthBuffer);
-        gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthBuffer);
-
+        gl.bindRenderbuffer(gl.RENDERBUFFER, lightingDepthBuffer);
+        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, lightingDepthBuffer);
 
         gl.viewport(0, 0, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
-        // put something else in the active texture so we don't attempt to read and write to the same texture
-        gl.bindTexture(gl.TEXTURE_2D, mainProgramInputs.texture);
+        // put something else in the active texture (texture1) so we don't attempt to read and write to the same texture
+        gl.bindTexture(gl.TEXTURE_2D, modelTexture);
+
         renderer(
           gl,
           mainProgramInputs,
@@ -747,7 +903,17 @@ i.onload = () => {
       mainProgramInputs.uniforms[U_LIGHT_TEXTURES_INDEX],
       1,
     );
-    if (!FLAG_CANVAS_LIGHTING) {
+    if (FLAG_CANVAS_LIGHTING) {
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, l);
+      if (FLAG_SQUARE_IMAGE) {
+        // should always be square
+        gl.generateMipmap(gl.TEXTURE_2D);
+      } else {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      }
+    } else {
       // switch back to rendering to canvas
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, innerWidth, innerHeight);
@@ -761,11 +927,11 @@ i.onload = () => {
       engineState.visibleRoom[1],
       cameraProjection,
       cameraPosition,
-      1,
+      3,
       litRooms,
     );
 
-    gl.bindTexture(gl.TEXTURE_2D, mainProgramInputs.texture);
+    gl.bindTexture(gl.TEXTURE_2D, modelTexture);
 
   };
   update(0);

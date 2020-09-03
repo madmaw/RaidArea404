@@ -3,6 +3,7 @@ var c;
 var g;
 var l;
 var t;
+var d;
 var innerWidth;
 var innerHeight;
 var onkeyup;

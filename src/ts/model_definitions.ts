@@ -48,7 +48,8 @@ const models: ModelDefinition[] = [
   // torso
   {
     [FACE_FRONT]: [40, 0, 5, 8],
-    [FACE_LEFT]: [46, 0, 5, 8],
+    [FACE_LEFT]: [45, 0, 3, 8],
+    [FACE_BACK]: [48, 0, 5, 8],
     [FACE_TOP]: [40, 9, 5, 3],
   },
   // upper arm
@@ -65,8 +66,8 @@ const models: ModelDefinition[] = [
   },
   // thigh
   {
-    [FACE_LEFT]: [32, 15, 3, 8],
-    [FACE_FRONT]: [35, 15, 3, 8],
+    [FACE_LEFT]: [32, 15, 3, 7],
+    [FACE_FRONT]: [35, 15, 3, 7],
     [FACE_TOP]: [32, 25, 3, 3],
   },
   // calf

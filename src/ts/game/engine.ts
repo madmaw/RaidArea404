@@ -53,7 +53,7 @@ function updater(
         //player.position[1] += ((keys[38]|| 0) - (keys[40] || 0)) * diff / 400;
         const keyboardInputs = state.keyboardInputs;
         entity.zRotation -= ((keyboardInputs[39]|| 0) - (keyboardInputs[37] || 0)) * delta / 400;
-        const d = ((keyboardInputs[38]|| 0) - (keyboardInputs[40] || 0)) / 999;
+        const d = ((keyboardInputs[38]|| 0) - (keyboardInputs[40] || 0)) / 899;
         const jump = keyboardInputs[32] || 0;
 
         if (d) {
@@ -72,7 +72,9 @@ function updater(
       // find all the rooms that overlap with this entity
 
       // gravity
-      entity.velocity[2] -= CONST_GRAVITY;
+      if (entity.collisionType == COLLISION_TYPE_DYNAMIC) {
+        entity.velocity[2] -= CONST_GRAVITY;
+      }
 
       let timeRemaining = delta;
       let entityOverlappedWithSomethingStatic: boolean | number | undefined;

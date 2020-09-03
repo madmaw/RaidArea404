@@ -43,7 +43,9 @@ function loadShader(gl, type, source) {
 
   if (FLAG_SHOW_GL_ERRORS && !gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
     console.error('An error occurred compiling the shaders: ', gl.getShaderInfoLog(shader));
-    console.log(source);
+    source.split('\n').map((line, lineNumber) => {
+      console.log(lineNumber+1, line);
+    });
 
     gl.deleteShader(shader);
     return null;
