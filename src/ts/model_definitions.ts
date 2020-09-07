@@ -1,28 +1,44 @@
+///<reference path="./model.ts"/>
+
 const MODEL_ID_WALL = 0;
-const MODEL_ID_CHAIR = 1;
-const MODEL_ID_TABLE = 2;
-const MODEL_ID_SPANNER = 3;
-const MODEL_ID_HEAD = 4;
-const MODEL_ID_TORSO = 5;
-const MODEL_ID_UPPER_ARM = 6;
-const MODEL_ID_FOREARM = 7;
-const MODEL_ID_THIGH = 8;
-const MODEL_ID_CALF = 9;
+const MODEL_ID_FLOOR = 1;
+const MODEL_ID_CHAIR = 2;
+const MODEL_ID_TABLE = 3;
+const MODEL_ID_SPANNER = 4;
+const MODEL_ID_HEAD = 5;
+const MODEL_ID_TORSO = 6;
+const MODEL_ID_UPPER_ARM = 7;
+const MODEL_ID_FOREARM = 8;
+const MODEL_ID_THIGH = 9;
+const MODEL_ID_CALF = 10;
+const MODEL_ID_BED = 11;
+const MODEL_ID_TOILET = 12;
+const MODEL_ID_BARS = 13;
+const MODEL_ID_SWITCH = 14;
+const MODEL_ID_CAMERA = 15;
 
 const WALL_WIDTH = 5;
 const WALL_HEIGHT = 15;
 
+const BED_WIDTH = 12;
+const BED_HEIGHT = 6;
+
 const models: ModelDefinition[] = [
-  // floor/wall tile
+  // wall tile
+  {
+    //[FACE_TOP]: [0, 32, WALL_WIDTH, WALL_WIDTH],
+    [FACE_FRONT]: [0, 37, WALL_WIDTH, WALL_HEIGHT],
+    [DIMENSION_DEPTH]: WALL_WIDTH,
+  },
+  // floor tile
   {
     [FACE_TOP]: [0, 32, WALL_WIDTH, WALL_WIDTH],
-    [FACE_FRONT]: [0, 37, WALL_WIDTH, WALL_HEIGHT],
   },
   // chair
   {
-    [FACE_LEFT]: [0, 0, 6, 10],
-    [FACE_FRONT]: [6, 0, 5, 10],
-    [FACE_TOP]: [6, 10, 5, 6],
+    [FACE_LEFT]: [0, 23, 5, 9],
+    [FACE_FRONT]: [5, 23, 5, 9],
+    [FACE_TOP]: [10, 23, 5, 5],
   },
   // table
   {
@@ -50,7 +66,7 @@ const models: ModelDefinition[] = [
     [FACE_FRONT]: [40, 0, 5, 8],
     [FACE_LEFT]: [45, 0, 3, 8],
     [FACE_BACK]: [48, 0, 5, 8],
-    [FACE_TOP]: [40, 9, 5, 3],
+    //[FACE_TOP]: [40, 9, 5, 3],
   },
   // upper arm
   {
@@ -75,60 +91,29 @@ const models: ModelDefinition[] = [
     [FACE_LEFT]: [42, 14, 3, 7],
     [FACE_FRONT]: [46, 14, 3, 7],
   },
-  // head 2
+  // bed
   {
-    [FACE_LEFT]: [24, 24, 5, 8],
-    [FACE_FRONT]: [19, 24, 5, 8],
-    [FACE_TOP]: [6, 10, 5, 6],
-    [FACE_BACK]: [24, 16, 5, 8],
+    [FACE_LEFT]: [8, 37, BED_WIDTH, 5],
+    [FACE_FRONT]: [19, 37, BED_HEIGHT, 5],
   },
-  // pyramid
+  // toilet
   {
-    [FACE_LEFT]: [0, 23, 3, 2],
-    [FACE_FRONT]: [3, 23, 3, 2],
+    [FACE_FRONT]: [7, 46, 5, 5],
+    [FACE_RIGHT]: [12, 46, 5, 5],
+    [FACE_TOP]: [7, 51, 5, 5],
   },
-  // cu
+  // bars
   {
-    [FACE_FRONT]: [0, 10, 3, 3],
-    [FACE_RIGHT]: [3, 10, 3, 3],
-    [FACE_BOTTOM]: [0, 13, 3, 3],
+    [FACE_FRONT]: [25, 34, 6, 18],
   },
-  // tombstone
+  // switch
   {
-    //[FACE_BOTTOM]: [0, 25, 3, 3],
-    [FACE_LEFT]: [0, 26, 3, 3],
-    [FACE_FRONT]: [3, 26, 3, 3],
-    //[FACE_RIGHT]: [6, 25, 3, 4],
-    //[FACE_BACK]: [9, 25, 3, 4],
-    //[FACE_TOP]: [3, 29, 3, 3],
-    [FACE_BOTTOM]: [6, 29, 3, 3],
+    [FACE_FRONT]: [34, 30, 3, 4],
   },
-  // triangle
+  // camera
   {
-    [FACE_TOP]: [16, 8, 8, 8],
-    [DIMENSION_HEIGHT]: 4,
-  },
-  // crosses
-  {
-    //[FACE_FRONT]: [12, 25, 2, 2],
-    [FACE_FRONT]: [0, 0, 2, 2],
-    [FACE_BACK]: [1, 4, 2, 2],
-    //[FACE_RIGHT]: [15, 25, 2, 2],
-    //[FACE_TOP]: [12, 29, 3, 3],
-    //[FACE_TOP]: [3, 29, 3, 3],
-  },
-  // legs
-  {
-    [FACE_RIGHT]: [13, 27, 4, 3],
-    //[FACE_FRONT]: [13, 20, 1, 3],
-    //[FACE_TOP]: [12, 29, 3, 3],
-    //[FACE_TOP]: [3, 29, 3, 3],
+    [FACE_LEFT]: [15, 23, 9, 7],
+    [FACE_FRONT]: [24, 23, 3, 7],
+    [FACE_BOTTOM]: [27, 23, 3, 9],
   }
-  // spiral
-  /*
-  {
-    [FACE_TOP]: [16, 0, 14, 16],
-    [DIMENSION_HEIGHT]: 5,
-  }
-  */
 ];

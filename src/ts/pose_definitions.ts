@@ -28,16 +28,18 @@ function makeWalkCycle(scale: number) {
     [PART_ID_RIGHT_UPPER_LEG]: [0, -Math.PI/9 * scale, -Math.PI/24],
     [PART_ID_TORSO]: [0, Math.PI/60 * scale * scale, -Math.PI/24 * scale],
     [PART_ID_HEAD]: [0, 0, Math.PI/30 * scale],
+    [PART_ID_LEFT_LOWER_ARM]: [Math.PI/15 * scale * scale, 0, 0],
+    [PART_ID_RIGHT_LOWER_ARM]: [Math.PI/20 * scale * scale, 0, 0],
   }
   // return to defaults
   const walk2: KeyFrame = {
     [PART_ID_LEFT_UPPER_LEG]: [0, -Math.PI/18 * scale, -Math.PI/24],
     [PART_ID_LEFT_LOWER_LEG]: [Math.PI/4 * scale, 0, 0],
     [PART_ID_TORSO]: [0, Math.PI/99 * scale, 0],
-    [PART_ID_LEFT_UPPER_ARM]: [0, -Math.PI/18 * scale, 0],
-    [PART_ID_LEFT_LOWER_ARM]: [Math.PI/18 * scale, 0, 0],
-    [PART_ID_RIGHT_UPPER_ARM]: [0, Math.PI/18 * scale, 0],
-    [PART_ID_RIGHT_LOWER_ARM]: [-Math.PI/18 * scale, 0, 0],
+    [PART_ID_LEFT_UPPER_ARM]: [0, -Math.PI/6 * scale, 0],
+    [PART_ID_LEFT_LOWER_ARM]: [Math.PI/9 * scale, 0, 0],
+    [PART_ID_RIGHT_UPPER_ARM]: [0, Math.PI/12 * scale, 0],
+    [PART_ID_RIGHT_LOWER_ARM]: [Math.PI/20 * scale * scale, 0, 0],
   };
   const walk3 = reversePose(walk1);
   const walk4 = reversePose(walk2);

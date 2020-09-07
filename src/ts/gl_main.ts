@@ -106,7 +106,7 @@ void main() {
   ${V_TEXURE_COORDINATE}=${A_TEXTURE_COORDINATE};
   ${V_ORIGINAL_POSITION}=${A_VERTEX_POSITION};
   ${V_ORIGINAL_SURFACE_NORMAL}=${A_SURFACE_NORMAL};
-  ${V_SURFACE_NORMAL}=((${U_MODEL_VIEW_MATRIX} * vec4(${A_SURFACE_NORMAL},0.0)) - (${U_MODEL_VIEW_MATRIX} * vec4(0.0))).xyz;
+  ${V_SURFACE_NORMAL}=((${U_MODEL_VIEW_MATRIX} * vec4(${A_SURFACE_NORMAL},.0)) - (${U_MODEL_VIEW_MATRIX} * vec4(.0))).xyz;
   gl_Position=${U_PROJECTION_MATRIX} * ${V_POSITION};
 }
 `;
@@ -115,11 +115,11 @@ precision ${PRECISION} float;
 
 uniform sampler2D ${U_MODEL_TEXTURE};
 uniform vec3 ${U_CAMERA_POSITION};
-uniform vec2 ${U_LIGHT};
-uniform vec3 ${U_LIGHT_POSITIONS}[${CONST_MAX_LIGHTS}];
+uniform vec3 ${U_LIGHT};
+uniform vec4 ${U_LIGHT_POSITIONS}[${CONST_MAX_LIGHTS}];
 uniform mat4 ${U_LIGHT_PROJECTIONS}[${CONST_MAX_LIGHTS}];
 uniform sampler2D ${U_LIGHT_TEXTURES};
-uniform vec3 ${U_PALETTE}[${CONST_MAX_PALETTE}];
+uniform vec4 ${U_PALETTE}[${CONST_MAX_PALETTE}];
 uniform vec4 ${U_BADGES}[${CONST_MAX_BADGES}];
 uniform sampler2D ${U_BADGE_TEXTURE};
 
@@ -130,54 +130,52 @@ varying vec4 ${V_ORIGINAL_POSITION};
 varying vec3 ${V_ORIGINAL_SURFACE_NORMAL};
 
 void main() {
-  vec3 ${L_COLOR}=texture2D(${U_MODEL_TEXTURE}, ${V_TEXURE_COORDINATE}).rgb;
-  float ${L_LIGHT}=${L_COLOR}.r;
-  for(int ${L_PALETTE_NDX}=0;${L_PALETTE_NDX}<${CONST_MAX_PALETTE};${L_PALETTE_NDX}++){
-    if(float(${L_PALETTE_NDX})<=${L_LIGHT}*${CONST_MAX_PALETTE-1}.1){
-      ${L_COLOR}=${U_PALETTE}[${L_PALETTE_NDX}];
-    }
-  }
-  ${L_LIGHT}=pow(${L_COLOR}.r,${U_LIGHT}.x);
-
-  for(int ${L_BADGE_NDX}=0;${L_BADGE_NDX}<${CONST_MAX_BADGES};${L_BADGE_NDX}++) {
-    vec4 ${L_BADGE}=${U_BADGES}[${L_BADGE_NDX}];
-    float ${L_ANGLE}=-atan(${V_ORIGINAL_SURFACE_NORMAL}.y,${V_ORIGINAL_SURFACE_NORMAL}.x);
-    if(${L_BADGE}.x>0.0&&abs((${L_BADGE}.z-${V_ORIGINAL_POSITION}.z)/${L_BADGE}.x)<1.0&&cos(${L_BADGE}.y+${L_ANGLE})>0.0) {
-      vec2 rotatedOriginalPosition=mat2(cos(${L_ANGLE}),-sin(${L_ANGLE}),sin(${L_ANGLE}),cos(${L_ANGLE}))*${V_ORIGINAL_POSITION}.xy;
-      float ${L_Y}=(rotatedOriginalPosition.y-tan(${L_BADGE}.y+${L_ANGLE})*rotatedOriginalPosition.x)/(${L_BADGE}.x);
-      if(abs(${L_Y})<1.0){
-        vec4 ${L_BADGE_COLOR}=texture2D(
-          ${U_BADGE_TEXTURE},
-          vec2(
-            ${L_Y}*0.5/${CONST_BADGE_CHARACTERS_PER_ROW}.0+(mod(${L_BADGE}.w,${CONST_BADGE_CHARACTERS_PER_ROW}.0))/${CONST_BADGE_CHARACTERS_PER_ROW}.0-${1-.5/CONST_BADGE_CHARACTERS_PER_ROW},
-            (${L_BADGE}.z-${V_ORIGINAL_POSITION}.z)*0.5/(${L_BADGE}.x*${CONST_BADGE_CHARACTERS_PER_ROW}.0)+floor(${L_BADGE}.w/${CONST_BADGE_CHARACTERS_PER_ROW}.0)/${CONST_BADGE_CHARACTERS_PER_ROW}.0-${1-.5/CONST_BADGE_CHARACTERS_PER_ROW}
-          )
-        );
-        ${L_COLOR}=mix(${L_COLOR},${L_BADGE_COLOR}.rgb,${L_BADGE_COLOR}.a);
-        ${L_LIGHT}=mix(${L_LIGHT},0.3,${L_BADGE_COLOR}.a);
+  vec3 ${L_CAMERA_DELTA}=${U_CAMERA_POSITION}-${V_POSITION}.xyz;
+  if(${U_LIGHT}.y>.0){
+    vec4 ${L_COLOR}=texture2D(${U_MODEL_TEXTURE}, ${V_TEXURE_COORDINATE});
+    float ${L_LIGHT}=${L_COLOR}.r;
+    for(int ${L_PALETTE_NDX}=0;${L_PALETTE_NDX}<${CONST_MAX_PALETTE};${L_PALETTE_NDX}++){
+      if(float(${L_PALETTE_NDX})<=${L_LIGHT}*${CONST_MAX_PALETTE-1}.1){
+        ${L_COLOR}=${U_PALETTE}[${L_PALETTE_NDX}];
       }
     }
-  }
-  for (int ${L_LIGHT_NDX}=0;${L_LIGHT_NDX}<${CONST_MAX_LIGHTS};${L_LIGHT_NDX}++){
-    if (${L_LIGHT_NDX}<int(${U_LIGHT}.y)){
-      vec4 ${L_SHADOW_POSITION}=${U_LIGHT_PROJECTIONS}[${L_LIGHT_NDX}]*(${V_POSITION});
-      vec3 ${L_SHADOW_SCREEN_COORDINATE}=${L_SHADOW_POSITION}.xyz/${L_SHADOW_POSITION}.w;
-      if(length(${L_SHADOW_SCREEN_COORDINATE}.xy)<1.0&&${L_SHADOW_SCREEN_COORDINATE}.z>0.0) {
-        float ${L_SHADOW_DISTANCE}=((1.0-texture2D(${U_LIGHT_TEXTURES},${L_SHADOW_SCREEN_COORDINATE}.xy/2.0+0.5).a))*${CONST_MAX_LIGHT_DISTANCE};
-        vec3 ${L_LIGHT_DELTA}=${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}]-${V_POSITION}.xyz;
-        if(${L_SHADOW_DISTANCE}+0.1>length(${L_LIGHT_DELTA})) {
-          ${L_LIGHT}+=pow(max(0.0,dot(normalize(${L_LIGHT_DELTA}),normalize(${V_SURFACE_NORMAL})))*(1.0-pow(length(${L_SHADOW_SCREEN_COORDINATE}.xy),9.9)),2.0);
+    ${L_LIGHT}=pow(max(${L_COLOR}.r,${L_COLOR}.g),${U_LIGHT}.x)+${U_LIGHT}.z;
+    if(dot(${L_CAMERA_DELTA},${V_SURFACE_NORMAL})>.0) {
+      for(int ${L_BADGE_NDX}=0;${L_BADGE_NDX}<${CONST_MAX_BADGES};${L_BADGE_NDX}++) {
+        vec4 ${L_BADGE}=${U_BADGES}[${L_BADGE_NDX}];
+        if(abs(${L_BADGE}.z-${V_ORIGINAL_POSITION}.z)<abs(${L_BADGE}.x)&&cos(${L_BADGE}.y-atan(${V_ORIGINAL_SURFACE_NORMAL}.y,${V_ORIGINAL_SURFACE_NORMAL}.x))>.0) {
+          float ${L_Y}=(mat2(cos(-${L_BADGE}.y),-sin(-${L_BADGE}.y),sin(-${L_BADGE}.y),cos(-${L_BADGE}.y))*${V_ORIGINAL_POSITION}.xy).y/${L_BADGE}.x;
+          if(abs(${L_Y})<1.0){
+            vec4 ${L_BADGE_COLOR}=texture2D(
+              ${U_BADGE_TEXTURE},
+              vec2(
+                ${L_Y}*.5/${CONST_BADGE_CHARACTERS_PER_ROW}.0+(mod(${L_BADGE}.w,${CONST_BADGE_CHARACTERS_PER_ROW}.0))/${CONST_BADGE_CHARACTERS_PER_ROW}.0-${1-.5/CONST_BADGE_CHARACTERS_PER_ROW},
+                (${L_BADGE}.z-${V_ORIGINAL_POSITION}.z)*.5/abs(${L_BADGE}.x*${CONST_BADGE_CHARACTERS_PER_ROW}.0)+floor(${L_BADGE}.w/${CONST_BADGE_CHARACTERS_PER_ROW}.0)/${CONST_BADGE_CHARACTERS_PER_ROW}.0-${1-.5/CONST_BADGE_CHARACTERS_PER_ROW}
+              )
+            );
+            ${L_COLOR}=mix(${L_COLOR},${L_BADGE_COLOR},${L_BADGE_COLOR}.a);
+          }
         }
       }
     }
-  }
-  vec3 ${L_CAMERA_DELTA}=${U_CAMERA_POSITION}-${V_POSITION}.xyz;
-  if(${U_LIGHT}.y>0.0){
-    //gl_FragColor = vec4(${L_COLOR}*${L_LIGHT}, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});
-    gl_FragColor = vec4(${L_COLOR}*${L_LIGHT}, 1.0);
+    for (int ${L_LIGHT_NDX}=0;${L_LIGHT_NDX}<${CONST_MAX_LIGHTS};${L_LIGHT_NDX}++){
+      if (${L_LIGHT_NDX}<int(${U_LIGHT}.y)){
+        vec4 ${L_SHADOW_POSITION}=${U_LIGHT_PROJECTIONS}[${L_LIGHT_NDX}]*(${V_POSITION});
+        vec3 ${L_SHADOW_SCREEN_COORDINATE}=${L_SHADOW_POSITION}.xyz/${L_SHADOW_POSITION}.w;
+        vec3 ${L_LIGHT_DELTA}=(${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}]-${V_POSITION}).xyz;
+        if(length(${L_SHADOW_SCREEN_COORDINATE}.xy)<1.0&&${L_SHADOW_SCREEN_COORDINATE}.z>.0) {
+          vec4 shadowColor=texture2D(${U_LIGHT_TEXTURES},(${L_SHADOW_SCREEN_COORDINATE}.xy+1.0)/${CONST_LIGHTING_GRID_DIMENSION*2}.0+vec2(mod(float(${L_LIGHT_NDX}),${CONST_LIGHTING_GRID_DIMENSION}.0),float(${L_LIGHT_NDX}/${CONST_LIGHTING_GRID_DIMENSION}))/${CONST_LIGHTING_GRID_DIMENSION}.0);
+          float ${L_SHADOW_DISTANCE}=shadowColor.a*${CONST_MAX_LIGHT_DISTANCE};
+          if(${L_SHADOW_DISTANCE}+.1>length(${L_LIGHT_DELTA})) {
+            ${L_LIGHT}+=pow(max(1.0-${L_COLOR}.a,dot(normalize(${L_LIGHT_DELTA}),normalize(${V_SURFACE_NORMAL})))*(1.0-pow(length(${L_SHADOW_SCREEN_COORDINATE}.xy),9.9)),2.0)*(1.0-length(${L_LIGHT_DELTA})/(${CONST_MAX_LIGHT_DISTANCE}*pow(${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}].w,.5))*${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}].w);
+          }
+        }
+      }
+    }
+    //gl_FragColor = vec4(${L_COLOR}.rgb*${L_LIGHT}*pow(max(.0, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_VIEW_DISTANCE}.0),.8),${L_COLOR}.a+pow((1.0-${L_COLOR}.a)*max(.0,1.0-${L_LIGHT}),.5));
+    gl_FragColor = vec4(${L_COLOR}.rgb*${L_LIGHT}*pow(max(.0, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_VIEW_DISTANCE}.0),.8),${L_COLOR}.a+(1.0-${L_COLOR}.a)*${L_LIGHT});
   } else {
-    //gl_FragColor = vec4(${L_COLOR},1.0);
-    gl_FragColor = vec4(${L_COLOR}*${L_LIGHT}, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});
+    gl_FragColor = vec4(length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});
   }
 }
 `;
@@ -196,10 +194,6 @@ type MainProgramInputs = {
 }
 
 const initMainProgram = (gl: WebGLRenderingContext, modelsFaces: PerimeterPoint[][][][]): MainProgramInputs => {
-  if (FLAG_CULL_FACES) {
-    gl.enable(gl.CULL_FACE);
-  }
-
   const main = initShaderProgram(gl, MAIN_VS, MAIN_FS);
   const attributes = ATTRIBUTE_NAMES.map(name => gl.getAttribLocation(main, name));
   const uniforms = UNIFORM_NAMES.map(name => gl.getUniformLocation(main, name));

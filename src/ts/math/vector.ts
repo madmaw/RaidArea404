@@ -99,7 +99,7 @@ function vector2PolyEdgeOverlapsCircle(poly: Vector2[], r: number, c: Vector2): 
     let cy = c[1];
     let v: Vector2 = poly[poly.length - 1];
     let minPoint: Vector2;
-    let minDistanceSquared = r * r;
+    let minDistanceSquared = r * r + ERROR_MARGIN;
 
     for( let i=0; i<poly.length; i++ ) {
         let w = poly[i];

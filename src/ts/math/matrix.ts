@@ -60,8 +60,7 @@ let matrix4Invert = function(a: Matrix4): Matrix4 {
 }
 
 let matrix4Multiply = function(a: Matrix4, b: Matrix4): Matrix4 {
-    let out: Matrix4 = [] as any;
-
+    const out: Matrix4 = [] as any;
     for( let x=0; x<16; x++ ) {
         let i = x >> 2;
         let j = x % 4;
@@ -71,27 +70,14 @@ let matrix4Multiply = function(a: Matrix4, b: Matrix4): Matrix4 {
         }
         out[i + j * 4] = v;
     }
-    return out;
+    return out as any;
 }
 
 let matrix4MultiplyStack = function(matrices: Matrix4[]): Matrix4 {
-    let current: Matrix4;
-    if( FLAG_INLINE_IDENTITY_MATRIX ) {
-        current = MATRIX4_IDENTITY;
-    } else {
-        current = matrix4Identity();
-    }
-    matrices.map(function(matrix: Matrix4) {
-        if( matrix ) {
-            current = matrix4Multiply(current, matrix);
-        }
-    });
-    // for( let matrix of matrices ) {
-    //     if( matrix ) {
-    //         current = matrix4Multiply(current, matrix);
-    //     }
-    // }
-    return current;
+    return matrices.reduce(
+        matrix4Multiply,
+        matrix4Identity()
+    );
 }
 
 let matrix4Perspective = function(tanFovyDiv2: number, aspect: number, znear: number, zfar: number): Matrix4 {

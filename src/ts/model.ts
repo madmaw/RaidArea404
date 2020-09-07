@@ -3,6 +3,7 @@
 const DEBUG_MODEL_GENERATION = false;
 
 const ERROR_MARGIN = .00001;
+const WHITEISH = 250;
 
 const
   FACE_TOP: FaceId = 0,
@@ -250,9 +251,13 @@ function bisectHorizontallyOnY(
   // }
 
   if (intersections.length > 1) {
+    const minIndex = [...intersections].filter((_, i) => !(i%2)).sort((i1, i2) => i1[1] - i2[1])[0][1];
+    const minIntersectionIndex = intersections.findIndex(i => i[1] == minIndex);
+
+
     // split into two
-    const [x1, i1] = intersections[0];
-    const [x2, i2] = intersections[1];
+    const [x1, i1] = intersections[minIntersectionIndex];
+    const [x2, i2] = intersections[minIntersectionIndex+1];
 
     const above: PerimeterPoint[] = [];
     const below: PerimeterPoint[] = [];
@@ -468,12 +473,13 @@ function rotatePerimeter(angle: number, perimeter: PerimeterPoint[]): PerimeterP
   })));
 }
 
+// NOTE: could be made smaller with a sort and an indexof
 function normalizePerimeter(perimeter: PerimeterPoint[]): PerimeterPoint[] {
   // ensure that the points still start at the top-left
   const topLeftIndex = perimeter.reduce<number>((minIndex, point, index) => {
     const minPoint = perimeter[minIndex];
     return point.position[1] < minPoint.position[1] - ERROR_MARGIN
-        || Math.abs(point.position[1] - minPoint.position[1]) < ERROR_MARGIN && point.position[0] < minPoint.position[0]
+        || Math.abs(point.position[1] - minPoint.position[1]) < ERROR_MARGIN && point.position[0] < minPoint.position[0] - ERROR_MARGIN
         ? index
         : minIndex;
   }, 0);
@@ -590,97 +596,103 @@ function calculateOppositePerimeter(perimeters: (PerimeterPoint[]|undefined)[], 
 }
 
 function extractPerimeters(model: ModelDefinition, i: HTMLImageElement, imageWidth: number, imageHeight: number): (PerimeterPoint[]|undefined)[] {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
   return FACE_IDS.map(face => {
     const rect = model[face];
     if (rect) {
       const [bx, by, bw, bh] = rect;
-      const cx = bw/2;
-      const cy = bh/2;
-      const canvas = document.createElement('canvas');
       canvas.width = bw;
       canvas.height = bh;
-      const context = canvas.getContext('2d');
       context.drawImage(i, bx, by, bw, bh, 0, 0, bw, bh);
+
       const imageData = context.getImageData(0, 0, bw, bh);
-      // find the first non-white pixel
-      const index = imageData.data.findIndex(v => v < 255) / 4;
-      const sx = index % bw;
-      const sy = (index / bw) | 0;
-      // attempt to walk the perimeter of the non-white pixels
-      let wx = sx;
-      let wy = sy;
-      let wside = SIDE_TOP;
-      let previousSide = SIDE_LEFT;
-      let previousColor: number | undefined;
-      const perimeter: PerimeterPoint[] = [];
-      do {
-        const [ax, ay] = SIDE_ADJUSTS[wside];
-        const color = imageData.data[(wy * bw + wx) * 4];
-        const sideAngle = SIDE_ANGLES[wside];
-        if (previousSide != wside || previousColor != color) {
-          const textureInsetAngle = previousSide == wside
-              ? Math.PI/2
-              : previousSide == (wside + 1)%4
-                  ? Math.PI/4
-                  : 3*Math.PI/4;
-          const px = wx + ax;
-          const py = wy + ay;
-          perimeter.push({
-            position: [px - cx, py - cy],
-            textureCoordinate: [
-              (px + bx + Math.cos(sideAngle + textureInsetAngle)/9)/imageWidth,
-              (py + by + Math.sin(sideAngle + textureInsetAngle)/9)/imageHeight
-            ],
-            textureCoordinateOriginal: 1,
-            fixed: previousColor != color && previousColor && color,
-          });
-        }
-        previousSide = wside;
-        previousColor = color;
-        for (const delta of WALK_DELTAS) {
-          const [dx, dy] = vectorNRound(vector2Rotate(sideAngle, delta as any as Vector2));
-          const px = wx + dx;
-          const py = wy + dy;
-          const pi = py * bw + px;
-          if (px >= 0 && px < bw && py >= 0 && py < bh && imageData.data[pi * 4] < 255) {
-            wx += dx;
-            wy += dy;
-            wside = (wside + delta[2]) % 4;
-            break;
-          }
-        }
-      } while (wx != sx || wy != sy || wside);
-      // smooth it out
-      let {position: previous} = perimeter[perimeter.length - 1];
-      for (let i=0; i<perimeter.length; i++) {
-        const currentPoint = perimeter[i];
-        const {position: current, fixed} = currentPoint;
-        const {position: next} = perimeter[(i+1) % perimeter.length];
-        // const {position: nextNext} = perimeter[(i+2) % perimeter.length];
-        const [aprevious, dprevious] = vector2AngleAndDistance(previous, current);
-        const [rx, ry] = vector2Rotate(-aprevious, [next[0] - current[0], next[1] - current[1]]);
-        // const [nnx, nny] = vector2Rotate(-aprevious, [nextNext[0] - next[0], nextNext[1] - next[1]]);
-        const [anext, dnext] = vector2AngleAndDistance(current, next);
-        if (ry < -ERROR_MARGIN && !fixed && (dprevious < 1.1 || dnext < 1.1)) {
-          // if (nnx < 0) {
-          //   current[0] += Math.cos(anext) * dnext/2;
-          //   current[1] += Math.sin(anext) * dnext/2
-          // } else {
-          //   const [a] = vector2AngleAndDistance(vector2Rotate(-aprevious, previous), vector2Rotate(-aprevious, next));
-          //   const l = Math.cos(a) * dprevious;
-          //   current[0] = previous[0] + Math.cos(a + aprevious) * l;
-          //   current[1] = previous[1] + Math.sin(a + aprevious) * l;
-          // }
-          current[0] = (previous[0] + next[0])/2;
-          current[1] = (previous[1] + next[1])/2;
-          currentPoint.popped = 1;
-        }
-        previous = current;
-      }
-      // TODO calcuate anti-clockwise to start with
-      return perimeter.reverse();
+
+      return extractPerimeter(imageData.data, bx, by, bw, bh, imageWidth, imageHeight);
     }
   });
+}
+
+function extractPerimeter(data: Uint8Array | Uint8ClampedArray, bx: number, by: number, bw: number, bh: number, imageWidth: number, imageHeight: number) {
+  const cx = bw/2;
+  const cy = bh/2;
+// find the first non-white pixel
+  const index = data.findIndex(v => v < WHITEISH) / 4 | 0;
+  const sx = index % bw;
+  const sy = (index / bw) | 0;
+  // attempt to walk the perimeter of the non-white pixels
+  let wx = sx;
+  let wy = sy;
+  let wside = SIDE_TOP;
+  let previousSide = SIDE_LEFT;
+  let previousColor: number | undefined;
+  const perimeter: PerimeterPoint[] = [];
+  do {
+    const [ax, ay] = SIDE_ADJUSTS[wside];
+    const color = data[(wy * bw + wx) * 4];
+    const sideAngle = SIDE_ANGLES[wside];
+    if (previousSide != wside || previousColor != color && previousColor && color) {
+      const textureInsetAngle = previousSide == wside
+          ? Math.PI/2
+          : previousSide == (wside + 1)%4
+              ? Math.PI/4
+              : 3*Math.PI/4;
+      const px = wx + ax;
+      const py = wy + ay;
+      perimeter.push({
+        position: [px - cx, py - cy],
+        textureCoordinate: [
+          (px + bx + Math.cos(sideAngle + textureInsetAngle)/9)/imageWidth,
+          (py + by + Math.sin(sideAngle + textureInsetAngle)/9)/imageHeight
+        ],
+        textureCoordinateOriginal: 1,
+        fixed: previousColor != color && previousColor && color,
+      });
+    }
+    previousSide = wside;
+    previousColor = color;
+    for (const delta of WALK_DELTAS) {
+      const [dx, dy] = vectorNRound(vector2Rotate(sideAngle, delta as any as Vector2));
+      const px = wx + dx;
+      const py = wy + dy;
+      const pi = py * bw + px;
+      if (px >= 0 && px < bw && py >= 0 && py < bh && data[pi * 4] < WHITEISH) {
+        wx += dx;
+        wy += dy;
+        wside = (wside + delta[2]) % 4;
+        break;
+      }
+    }
+  } while (wx != sx || wy != sy || wside);
+  // smooth it out
+  let {position: previous} = perimeter[perimeter.length - 1];
+  for (let i=0; i<perimeter.length; i++) {
+    const currentPoint = perimeter[i];
+    const {position: current, fixed} = currentPoint;
+    const {position: next} = perimeter[(i+1) % perimeter.length];
+    // const {position: nextNext} = perimeter[(i+2) % perimeter.length];
+    const [aprevious, dprevious] = vector2AngleAndDistance(previous, current);
+    const [rx, ry] = vector2Rotate(-aprevious, [next[0] - current[0], next[1] - current[1]]);
+    // const [nnx, nny] = vector2Rotate(-aprevious, [nextNext[0] - next[0], nextNext[1] - next[1]]);
+    const [anext, dnext] = vector2AngleAndDistance(current, next);
+    if (ry < -ERROR_MARGIN && !fixed && (dprevious < 1.1 || dnext < 1.1)) {
+      // if (nnx < 0) {
+      //   current[0] += Math.cos(anext) * dnext/2;
+      //   current[1] += Math.sin(anext) * dnext/2
+      // } else {
+      //   const [a] = vector2AngleAndDistance(vector2Rotate(-aprevious, previous), vector2Rotate(-aprevious, next));
+      //   const l = Math.cos(a) * dprevious;
+      //   current[0] = previous[0] + Math.cos(a + aprevious) * l;
+      //   current[1] = previous[1] + Math.sin(a + aprevious) * l;
+      // }
+      current[0] = (previous[0] + next[0])/2;
+      current[1] = (previous[1] + next[1])/2;
+      currentPoint.popped = 1;
+    }
+    previous = current;
+  }
+  // TODO calcuate anti-clockwise to start with
+  return perimeter.reverse();
 }
 
 function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): PerimeterPoint[][][] {
