@@ -15,7 +15,7 @@
 // headband/visor, 9
 
 
-const humanBody: BodyPart = {
+const HUMAN_BODY: BodyPart = {
   id: PART_ID_TORSO,
   attachmentPoint: [0, 0, .85],
   paletteIndices: [5, 4, 3, 5],
@@ -35,7 +35,7 @@ const humanBody: BodyPart = {
     {
       id: PART_ID_HEAD,
       modelId: MODEL_ID_HEAD,
-      attachmentPoint: [-.2, 0, 5.9],
+      attachmentPoint: [-.2, 0, 4.2],
       paletteIndices: [0, 5, 1, 9],
       // badges: [
       //   // mouth
@@ -48,6 +48,7 @@ const humanBody: BodyPart = {
       attachmentTransform: matrix4MultiplyStack([
         matrix4Rotate(-Math.PI/30, 0, 1, 0),
         matrix4Scale(.5),
+        matrix4Translate(0, 0, 3),
       ]),
     },
     {

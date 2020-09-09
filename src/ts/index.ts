@@ -17,6 +17,9 @@ d.height = CONST_BADGE_CANVAS_DIMENSION;
 const context = d.getContext('2d');
 const badgeColors: string[] = ['', 'red'];
 const badgeDefinitions: ([number, number] | [number])[] = [
+  // big eye
+  //[0x2B24],
+  [0x25C6],
   // 0-9A-Z, punctuation
   [45, 46],
   // grimace
@@ -48,7 +51,9 @@ badgeColors.map(textColor => {
   badgeDefinitions.map(([codePoint, count]) => {
     for (let k=0; k<(count||1); k++) {
       const char = String.fromCodePoint(codePoint + k);
-      console.log(badgeCount, char);
+      if (FLAG_PRINT_BADGES) {
+        console.log(badgeCount, char);
+      }
       context.fillText(
         char,
         (badgeCount%CONST_BADGE_CHARACTERS_PER_ROW + .5)*CONST_BADGE_DIMENSION,
@@ -79,148 +84,149 @@ i.onload = () => {
   const modelsFaces: PerimeterPoint[][][][] = models.map((model, i) => {
     return modelToFaces(model, modelPerimeters[i]);
   });
+  if (FLAG_DEBUG_MODELS) {
+    const context = c.getContext('2d');
+    context.scale(scale, scale)
+    context.lineWidth = 1/scale;
+    context.font = '1px serif';
+    context.textAlign = 'center';
+    context.lineJoin = 'round'
+    modelsFaces.forEach((modelFaces, modelId) => {
+      const model = models[modelId];
 
-  const context = c.getContext('2d');
-  context.scale(scale, scale)
-  context.lineWidth = 1/scale;
-  context.font = '1px serif';
-  context.textAlign = 'center';
-  context.lineJoin = 'round'
-  modelsFaces.forEach((modelFaces, modelId) => {
-    const model = models[modelId];
+      modelFaces.forEach((modelFacePerimeters, faceId) => {
+        context.strokeStyle = '#f5f';
+        const rect = model[faceId];
 
-    modelFaces.forEach((modelFacePerimeters, faceId) => {
-      context.strokeStyle = '#f5f';
-      const rect = model[faceId];
+        if (rect) {
+          const [ox, oy, ow, oh] = rect;
+          context.save();
+          context.translate(ox + ow/2, oy + oh/2);
 
-      if (rect) {
-        const [ox, oy, ow, oh] = rect;
-        context.save();
-        context.translate(ox + ow/2, oy + oh/2);
+          modelFacePerimeters
+              .sort((p1, p2) => {
+                const getAverageDepth = (p: PerimeterPoint[]) => p.reduce((c, p) => c + p.position[2], 0)/p.length;
+                return getAverageDepth(p2) - getAverageDepth(p1);
+              })
+              .forEach(perimeter => {
+                context.beginPath();
+                let totalZ = 0;
+                let countZ = 0;
+                perimeter.forEach(({ position: [x, y, z], textureCoordinateOriginal }, i) => {
+                  if (i) {
+                    context.lineTo(x, y);
+                  } else {
+                    context.moveTo(x, y);
+                  }
 
-        modelFacePerimeters
-            .sort((p1, p2) => {
-              const getAverageDepth = (p: PerimeterPoint[]) => p.reduce((c, p) => c + p.position[2], 0)/p.length;
-              return getAverageDepth(p2) - getAverageDepth(p1);
-            })
-            .forEach(perimeter => {
+                  // if (textureCoordinateOriginal) {
+                  //   context.fillStyle = 'yellow';
+                  //   context.fillRect(x - 4/scale, y - 4/scale, 8/scale, 8/scale);
+                  // }
+
+                  totalZ += z;
+                  countZ++;
+                });
+                context.fillStyle = `rgba(0, 0, ${120-30 * totalZ/countZ}, .5)`;
+
+                context.closePath();
+                context.stroke();
+                context.fill();
+              });
+          context.restore();
+        }
+      });
+
+      context.strokeStyle = '#f00';
+      context.fillStyle = '#afa';
+      context.lineWidth = 3/scale;
+
+      const perimeters = modelPerimeters[modelId];
+      perimeters
+          .map((perimeter, faceId) => {
+            const rect = model[faceId];
+            if (perimeter && rect) {
+              const [ox, oy, ow, oh] = rect;
               context.beginPath();
-              let totalZ = 0;
-              let countZ = 0;
-              perimeter.forEach(({ position: [x, y, z], textureCoordinateOriginal }, i) => {
+              perimeter.forEach(({ position: [x, y], textureCoordinate: [tx, ty] }, i) => {
+                context.save();
+                context.translate(ox + ow/2, oy + oh/2);
                 if (i) {
                   context.lineTo(x, y);
                 } else {
                   context.moveTo(x, y);
                 }
-
-                // if (textureCoordinateOriginal) {
-                //   context.fillStyle = 'yellow';
-                //   context.fillRect(x - 4/scale, y - 4/scale, 8/scale, 8/scale);
+                // if (fixed) {
+                //   context.fillRect(x-4/scale, y-4/scale, 8/scale, 8/scale);
                 // }
 
-                totalZ += z;
-                countZ++;
-              });
-              context.fillStyle = `rgba(0, 0, ${120-30 * totalZ/countZ}, .5)`;
+                context.restore();
 
+              });
               context.closePath();
               context.stroke();
-              context.fill();
-            });
-        context.restore();
-      }
+            }
+            return perimeter
+          }).map((perimeter, faceId) => {
+            const rect = model[faceId];
+            if (perimeter && rect) {
+              context.strokeStyle = '#0f0';
+              const [ox, oy, ow, oh] = rect;
+
+              perimeter.forEach(({ position: [x, y], textureCoordinate: [tx, ty] }, i) => {
+                context.beginPath();
+                context.moveTo(ox + ow/2 + x, oy + oh/2 + y);
+                context.lineTo(tx * imageWidth, ty * imageWidth);
+                context.stroke();
+                context.beginPath();
+                context.arc(tx * imageWidth, ty * imageWidth, 6/scale, 0, Math.PI * 2);
+                context.stroke();
+              });
+            }
+          });
     });
+  }
 
-    context.strokeStyle = '#f00';
-    context.fillStyle = '#afa';
-    context.lineWidth = 3/scale;
 
-    const perimeters = modelPerimeters[modelId];
-    perimeters
-        .map((perimeter, faceId) => {
-          const rect = model[faceId];
-          if (perimeter && rect) {
-            const [ox, oy, ow, oh] = rect;
-            context.beginPath();
-            perimeter.forEach(({ position: [x, y], textureCoordinate: [tx, ty] }, i) => {
-              context.save();
-              context.translate(ox + ow/2, oy + oh/2);
-              if (i) {
-                context.lineTo(x, y);
-              } else {
-                context.moveTo(x, y);
-              }
-              // if (fixed) {
-              //   context.fillRect(x-4/scale, y-4/scale, 8/scale, 8/scale);
-              // }
+  // const fakeFaces: PerimeterPoint[][] = [
+  //   [
+  //     {
+  //       position: [-1, -1, 1],
+  //       textureCoordinate: [0, 0],
+  //     },
+  //     {
+  //       position: [1, 1, 1],
+  //       textureCoordinate: [1, 1],
+  //     },
+  //     {
+  //       position: [1, -1, 1],
+  //       textureCoordinate: [1, 0],
+  //     },
+  //   ],
+  //   [
+  //     {
+  //       position: [-1, -1, 1],
+  //       textureCoordinate: [0, 0],
+  //     },
+  //     {
+  //       position: [-1, 1, 1],
+  //       textureCoordinate: [0, 1],
+  //     },
+  //     {
+  //       position: [1, 1, 1],
+  //       textureCoordinate: [1, 1],
+  //     },
+  //   ]
+  // ];
+  // modelsFaces.push([
+  //     fakeFaces,
+  //     fakeFaces,
+  //     fakeFaces,
+  //     fakeFaces,
+  //     fakeFaces,
+  //     fakeFaces,
+  // ]);
 
-              context.restore();
-
-            });
-            context.closePath();
-            context.stroke();
-          }
-          return perimeter
-        }).map((perimeter, faceId) => {
-          const rect = model[faceId];
-          if (perimeter && rect) {
-            context.strokeStyle = '#0f0';
-            const [ox, oy, ow, oh] = rect;
-
-            perimeter.forEach(({ position: [x, y], textureCoordinate: [tx, ty] }, i) => {
-              context.beginPath();
-              context.moveTo(ox + ow/2 + x, oy + oh/2 + y);
-              context.lineTo(tx * imageWidth, ty * imageWidth);
-              context.stroke();
-              context.beginPath();
-              context.arc(tx * imageWidth, ty * imageWidth, 6/scale, 0, Math.PI * 2);
-              context.stroke();
-            });
-          }
-        });
-  });
-
-  const fakeFaces: PerimeterPoint[][] = [
-    [
-      {
-        position: [-1, -1, 1],
-        textureCoordinate: [0, 0],
-      },
-      {
-        position: [1, 1, 1],
-        textureCoordinate: [1, 1],
-      },
-      {
-        position: [1, -1, 1],
-        textureCoordinate: [1, 0],
-      },
-    ],
-    [
-      {
-        position: [-1, -1, 1],
-        textureCoordinate: [0, 0],
-      },
-      {
-        position: [-1, 1, 1],
-        textureCoordinate: [0, 1],
-      },
-      {
-        position: [1, 1, 1],
-        textureCoordinate: [1, 1],
-      },
-    ]
-  ];
-  modelsFaces.push([
-      fakeFaces,
-      fakeFaces,
-      fakeFaces,
-      fakeFaces,
-      fakeFaces,
-      fakeFaces,
-  ]);
-
-  // convert the models into 3D models
   if (CONST_MAX_SCREEN_HEIGHT && CONST_MAX_SCREEN_WIDTH) {
     const aspectRatio = innerWidth/innerHeight;
     if (aspectRatio > CONST_MAX_SCREEN_WIDTH/CONST_MAX_SCREEN_HEIGHT) {
@@ -304,11 +310,7 @@ i.onload = () => {
     maxCameraDistance: number,
     ambientLight: number,
     darknessFactor: number,
-    lights: {
-      lightPosition?: Vector4,
-      lightProjection?: Matrix4,
-      lightTanFOVOn2?: number,
-    }[],
+    lights?: LightEntity[],
     filter?: (e: Entity) => boolean,
     renderBackFaces?: boolean | number,
   ) => {
@@ -333,23 +335,37 @@ i.onload = () => {
       uniforms[U_LIGHT_INDEX],
       [
         darknessFactor,
-        lights.length,
+        lights ? 1 : 0,
         ambientLight,
         //0,
       ]
     );
-    if (lights.length || !FLAG_AVOID_GL_WARNINGS) {
+    if (lights || !FLAG_AVOID_GL_WARNINGS) {
+      const paddedLights = new Array(CONST_MAX_LIGHTS).fill(0).map<{
+        position: Vector3,
+        lightProjection?: Matrix4,
+        lightIntensity?: number,
+      }>((_, i) => {
+        const light = lights && lights[i];
+        return light
+            ? light
+            : {
+              lightIntensity: 0,
+              lightProjection: matrix4Identity(),
+              position: [0, 0, 0],
+            };
+      });
       gl.uniform4fv(
         uniforms[U_LIGHT_POSITIONS_INDEX],
-        lights.flatMap(light => light.lightPosition.slice(0, 3).concat(Math.sin(world.age/7)/12+light.lightPosition[3])),
+        paddedLights.flatMap(light => light.position.concat(light.lightIntensity)),
       );
       gl.uniformMatrix4fv(
         uniforms[U_LIGHT_PROJECTIONS_INDEX],
         false,
-        lights.flatMap(light =>
+        paddedLights.flatMap(light =>
           matrix4Multiply(
             light.lightProjection,
-            matrix4Translate(...(light.lightPosition.map(v => -v) as Vector3))
+            matrix4Translate(...(light.position.map(v => -v) as Vector3))
           )
         ),
       );
@@ -360,7 +376,7 @@ i.onload = () => {
     }
 
     const invisibleEntities: Entity[] = [];
-    iterateEntitiesInRooms(world, rooms, (entity: Entity) => {
+    iterateEntities(world, rooms, (entity: Entity) => {
       const entityCenterPosition = [...entity.position.slice(0, 2), entity.position[2]+entity.depth/2] as Vector3;
       // don't think this works perfectly because
       // 1. the sphere is not sperical in perspective projection
@@ -392,11 +408,12 @@ i.onload = () => {
           && d - entity.renderRadius < maxCameraDistance
       ) {
         // no invisible entities for shadow generation
-        if (!entity.invisible || !lights.length) {
+        if (!entity.invisible || !lights) {
           // render
           const transform = matrix4MultiplyStack([
             matrix4Translate(...entity.position),
             matrix4Rotate(-entity.zRotation, 0, 0, 1),
+            matrix4Scale(1, 1, entity.scale || 1),
           ]);
           bodyPartRenderer(
             gl,
@@ -414,22 +431,23 @@ i.onload = () => {
       }
     });
 
-    // if (FLAG_CULL_FACES) {
-    //   gl.disable(gl.CULL_FACE);
-    // }
-    if (lights.length) {
+    if (lights) {
       gl.enable(gl.BLEND);
       gl.depthMask(false);
+      // if (FLAG_CULL_FACES) {
+      //   gl.disable(gl.CULL_FACE);
+      // }
       // lights are already ordered nearest to furthest
-      const closestLightPosition = lights[0].lightPosition.slice(0, 2);
-      const lightCameraNormal = vectorNSubtract(closestLightPosition, cameraPosition);
+      // const closestLightPosition = lights[0].position.slice(0, 2);
+      // const lightCameraNormal = vectorNSubtract(closestLightPosition, cameraPosition);
       invisibleEntities.map(entity => {
         const transform = matrix4MultiplyStack([
           matrix4Translate(...entity.position),
           matrix4Rotate(-entity.zRotation, 0, 0, 1),
+          matrix4Scale(1, 1, entity.scale || 1),
         ]);
         // is this entity between the camera and the closest light to the camera?
-        const lightEntityNormal = vectorNSubtract(closestLightPosition, entity.position);
+        // const lightEntityNormal = vectorNSubtract(closestLightPosition, entity.position);
         bodyPartRenderer(
           gl,
           inputs,
@@ -438,9 +456,10 @@ i.onload = () => {
           entity.partTransforms || {},
           entity.badges || {},
           entity.palette,
-          vectorNDotProduct(lightEntityNormal, lightCameraNormal)<0
-              ? renderBackFaces
-              : !renderBackFaces,
+          // vectorNDotProduct(lightEntityNormal, lightCameraNormal)<0
+          //     ? renderBackFaces
+          //     : !renderBackFaces,
+          renderBackFaces
         );
       });
       gl.disable(gl.BLEND);
@@ -553,155 +572,49 @@ i.onload = () => {
     });
   };
 
-  const hairColors: Vector4[] = [
-    [.1, .1, .2, 1],
-    [.3, .3, .1, 1],
-    [.4, .1, .1, 1],
-    [.3, .3, .3, 1],
-    [.2, .2, .1, 1],
-  ];
-  const mutedClothingColors: Vector4[] = [
-    [.4, .4, .6, 1],
-    [.5, .4, .4, 1],
-    [.5, .5, .5, 1],
-    [.3, .3, .3, 1],
-    [.4, .5, .4, 1],
-  ];
-  const brightClothingColors: Vector4[] = [
-    [.7, .5, .2, 1],
-    [.7, .7, .1, 1],
-    [.5, .7, .5, 1],
-    [.7, .5, .5, 1],
-    [.5, .5, .7, 1],
-    [.4, .6, .6, 1],
-  ];
-  const skinColors: Vector4[] = [
-    [.7, .6, .6, 1],
-    [.6, .6, .6, 1],
-    [.6, .5, .5, 1],
-    [.5, .4, .3, 1],
-  ];
-
-  const mouthes: number[] = [
-    1,
-    46,
-    47,
-    48,
-    49,
-  ];
-  const eyes: number[] = [
-    50,
-    51,
-    52
-  ];
-
-  const skinColor = randomValueFromArray(skinColors);
-  const hairColor = randomValueFromArray([...hairColors, skinColor]);
-  const pantsColor = randomValueFromArray(mutedClothingColors);
-  const shirtColor = randomValueFromArray([...brightClothingColors, ...mutedClothingColors, skinColor]);
-  const coatColor = randomValueFromArray([...mutedClothingColors, ...brightClothingColors, shirtColor]);
-  const sleeveColor = randomValueFromArray([skinColor, shirtColor, coatColor])
-  const shoesColor = randomValueFromArray(mutedClothingColors);
-  const pantLegColor = randomValueFromArray([pantsColor, skinColor]);
-  const sockColor = randomValueFromArray([pantLegColor, ...mutedClothingColors, ...brightClothingColors]);
-  const headbandColor = Math.random() < .1 ? coatColor : randomValueFromArray([skinColor, hairColor]);
-  const eye = randomValueFromArray(eyes);
-
-  const player: Entity = {
-    id: nextEntityId++,
-    palette: [
-      hairColor,
-      skinColor,
-      shoesColor,
-      pantsColor,
-      coatColor,
-      shirtColor,
-      sleeveColor,
-      pantLegColor,
-      sockColor,
-      headbandColor,
-      //[0, 0, 0, 0], // everything black, transparent
-    ],
-    body: humanBody,
-    position: [6, 2, 0],
-    depth: 1.5,
-    collisionRadius: .2,
-    renderRadius: 1,
-    velocity: [0, 0, 0],
-    collisionType: COLLISION_TYPE_DYNAMIC,
-    badges: {
-      [PART_ID_HEAD]: [
-        // mouth
-        [1, 0, -.8, randomValueFromArray(mouthes)],
-        // left eye
-        [-1, -Math.PI/7, .7, eye],
-        // right eye
-        [1, Math.PI/7, .7, eye],
-      ],
-      [PART_ID_TORSO]: [
-        // // 4
-        // [1, Math.PI, 1, 3],
-        // // 0
-        // [1, Math.PI*.8, 1, 7],
-        // // 4
-        // [1, -Math.PI*.8, 1, 7]
-        [Math.random() > .5 ? 0 : 1 + Math.random(), shirtColor==coatColor ? 0 : Math.PI, 1, 50+Math.random()*169|0],
-      ]
+  const rooms = make2DArray<Room>(CONST_WORLD_ROOMS_ACROSS, CONST_WORLD_ROOMS_DOWN, (rx, ry) => {
+    return {
+      entities: [],
+      rx,
+      ry,
+    }
+  });
+  const tiles = make2DArray<Tile>(CONST_WORLD_TILES_ACROSS, CONST_WORLD_TILES_DOWN, () => {
+    return {
+      lightSources: 0,
+    };
+  });
+  const world: World = {
+    age: 0,
+    rooms,
+    tiles,
+    switches: [],
+    activatedCircuits: {
+      0: -9999,
     },
-    zRotation: 0,
-    intelligence: INTELLIGENCE_USER_CONTROLLED,
-    animations:{
-      [ACTION_WALK]: {
-        frameDuration: 300,
-        keyFrames: makeWalkCycle(1)
-      },
-      [ACTION_RUN]: {
-        frameDuration: 300,
-        keyFrames: makeWalkCycle(2)
-      }
-    },
-    //invisible: 1,
   };
 
-  const shadowFilter = (e: Entity) => !e.noShadow;
-
-  const rooms: Room[][] = roomDefinitions.map((row, rx) =>
+  roomDefinitions.map((row, rx) =>
     row.map((definition, ry) => {
-      const room: Room = {
-        entities: [],
-        ambientLight: definition.ambientLight || 0,
-        adjoiningRooms: definition.adjoiningRooms || 0,
-        rx,
-        ry,
-      };
+      const room = rooms[rx][ry];
+      room.ambientLight = definition.ambientLight || 0;
+      room.adjoiningRooms = definition.adjoiningRooms || 0;
       const legend = {...globalLegend, ...definition.legend || {}};
       const floorAndCeilingFactory = definition.floorAndCeilingFactory || globalFloorAndCeilingFactory;
       definition.layout.split('').map((c, i) => {
-        const x = rx * ROOM_DIMENSION + i % ROOM_DIMENSION+.5;
-        const y = ry * ROOM_DIMENSION + (i / ROOM_DIMENSION | 0) + .5;
-        if (FLAG_CHECK_ROOM_SIZE && y - ry * ROOM_DIMENSION >= ROOM_DIMENSION) {
+        const x = rx * CONST_ROOM_DIMENSION + i % CONST_ROOM_DIMENSION+.5;
+        const y = ry * CONST_ROOM_DIMENSION + (i / CONST_ROOM_DIMENSION | 0) + .5;
+        if (FLAG_CHECK_ROOM_SIZE && y - ry * CONST_ROOM_DIMENSION >= CONST_ROOM_DIMENSION) {
           console.log(`room too tall ${rx},${ry}`);
         }
         const char = c.toLowerCase();
-        legend[char] && legend[char](room, x, y, char != c, c);
+        legend[char] && legend[char](world, x, y, char != c, c);
         if (c != ' ') {
-          floorAndCeilingFactory(room, x, y, 0, c);
+          floorAndCeilingFactory(world, x, y, 0, c);
         }
       });
-      return room;
     })
   );
-
-  rooms[0][0].entities.push(player);
-
-  const world: World = {
-    bounds: worldBounds,
-    age: 0,
-    rooms,
-    activatedSwitches: {
-      0: 1,
-    },
-  };
 
   const keyboardInputs: {[_: number]: number} = {};
 
@@ -709,8 +622,6 @@ i.onload = () => {
   onkeyup = (e: KeyboardEvent) => keyboardInputs[e.keyCode] = 0;
 
   let engineState: EngineState = {
-    visibleRoom: [0, 0],
-    player,
     keyboardInputs,
   };
 
@@ -738,13 +649,14 @@ i.onload = () => {
 
     updater(world, engineState, diff);
 
-    const room = world.rooms[engineState.visibleRoom[0]][engineState.visibleRoom[1]];
+    const [rx, ry] = getRoom(world.player);
+    const room = world.rooms[rx][ry];
     const cameraPosition = room.cameraPosition;
     const cameraTanFOVOn2 = room.cameraTanFOVOn2 || CONST_DEFAULT_TAN_FOV_ON_2;
-    const cameraDelta = vectorNSubtract(player.position, cameraPosition);
+    const cameraDelta = vectorNSubtract(world.player.position, cameraPosition);
     const cameraZRotation = Math.atan2(cameraDelta[1], cameraDelta[0]);
     const cameraDistance = vectorNLength(cameraDelta.slice(0, 2).concat(0));
-    const cameraYRotation = Math.atan2(cameraDistance, -cameraDelta[2] - player.depth);
+    const cameraYRotation = Math.atan2(cameraDistance, -cameraDelta[2] - world.player.depth);
     //const cameraXRotation = Math.PI/2;
 
     const aspect = g.width / g.height;
@@ -758,19 +670,11 @@ i.onload = () => {
       matrix4Rotate(cameraZRotation, 0, 0, 1),
     ]);
 
-    const adjoiningRooms = getAdjoiningRooms(
-      world,
-      engineState.visibleRoom[0],
-      engineState.visibleRoom[1],
-    );
-    const litRooms = iterateRooms(
-      world,
-      adjoiningRooms,
-      // don't light distant rooms
-      room => (engineState.visibleRoom[0] == room.rx || engineState.visibleRoom[1] == room.ry) && room.lightPosition && room
-    ).sort((l1, l2) => {
-      const d1 = vectorNLength(vectorNSubtract(cameraPosition, l1.lightPosition as any as Vector3));
-      const d2 = vectorNLength(vectorNSubtract(cameraPosition, l2.lightPosition as any as Vector3));
+    const adjoiningRooms = getAdjoiningRooms(world, rx, ry);
+
+    const litEntities = (engineState.litEntities || []).sort((l1, l2) => {
+      const d1 = vectorNLength(vectorNSubtract(cameraPosition, l1.position as any as Vector3));
+      const d2 = vectorNLength(vectorNSubtract(cameraPosition, l2.position as any as Vector3));
       return d1 - d2;
     }).slice(0, CONST_MAX_LIGHTS);
 
@@ -796,11 +700,15 @@ i.onload = () => {
       gl.bindTexture(gl.TEXTURE_2D, modelTexture);
     }
 
-    litRooms.map((room, i) => {
+    litEntities.map((litEntity, i) => {
+      const rx = (litEntity.position[0] / CONST_ROOM_DIMENSION) | 0;
+      const ry = (litEntity.position[1] / CONST_ROOM_DIMENSION) | 0;
       // only light what we can see
-      const intersectingRooms = getAdjoiningRooms(world, room.rx, room.ry)
+      const intersectingRooms = getAdjoiningRooms(world, rx, ry)
           .filter(p1 => (p1[0] == room.rx || p1[1] == room.ry) && adjoiningRooms.some(p2 => p1[0] == p2[0] && p1[1] == p1[1]));
-      const lightDistance = room.lightPosition[3]*room.lightPosition[3]*CONST_MAX_LIGHT_DISTANCE;
+      const lightDistance = CONST_MAX_LIGHT_DISTANCE;
+      // do not create a shadow from ourself!
+      const shadowFilter = (e: Entity) => e != litEntity;
 
       if (FLAG_CANVAS_LIGHTING) {
         shadowGL.viewport(
@@ -815,13 +723,13 @@ i.onload = () => {
           shadowProgramInputs,
           world,
           intersectingRooms,
-          room.lightPosition.slice(0, 3) as Vector3,
-          matrix4Multiply(matrix4Scale(1, -1, 1), room.lightProjection),
-          room.lightTanFOVOn2 || CONST_DEFAULT_TAN_FOV_ON_2,
+          litEntity.position,
+          matrix4Multiply(matrix4Scale(1, -1, 1), litEntity.lightProjection),
+          litEntity.lightTanFOVOn2 || CONST_DEFAULT_TAN_FOV_ON_2,
           lightDistance,
           1,
           1,
-          [],
+          null,
           shadowFilter,
           1
         );
@@ -838,13 +746,13 @@ i.onload = () => {
           mainProgramInputs,
           world,
           intersectingRooms,
-          room.lightPosition.slice(0, 3) as Vector3,
-          room.lightProjection,
-          room.lightTanFOVOn2 || CONST_DEFAULT_TAN_FOV_ON_2,
+          litEntity.position,
+          litEntity.lightProjection,
+          litEntity.lightTanFOVOn2 || CONST_DEFAULT_TAN_FOV_ON_2,
           lightDistance,
           1,
           1,
-          [],
+          null,
           shadowFilter
         );
 
@@ -898,7 +806,7 @@ i.onload = () => {
       CONST_MAX_VIEW_DISTANCE,
       room.ambientLight,
       3,
-      litRooms,
+      litEntities,
     );
 
     gl.bindTexture(gl.TEXTURE_2D, modelTexture);

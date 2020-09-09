@@ -38,7 +38,8 @@ module.exports = function (grunt) {
                   compilation_level: 'ADVANCED_OPTIMIZATIONS',
                   language_in: 'ECMASCRIPT_2018',
                   language_out: 'ECMASCRIPT_2018',
-                  externs: 'src/externs/externs.js'
+                  externs: 'src/externs/externs.js',
+                  create_source_map: "true",
               }
           },
           es5: {
