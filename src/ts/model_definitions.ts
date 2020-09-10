@@ -4,18 +4,17 @@ const MODEL_ID_WALL = 0;
 const MODEL_ID_FLOOR = 1;
 const MODEL_ID_CHAIR = 2;
 const MODEL_ID_TABLE = 3;
-const MODEL_ID_SPANNER = 4;
-const MODEL_ID_HEAD = 5;
-const MODEL_ID_TORSO = 6;
-const MODEL_ID_UPPER_ARM = 7;
-const MODEL_ID_FOREARM = 8;
-const MODEL_ID_THIGH = 9;
-const MODEL_ID_CALF = 10;
-const MODEL_ID_BED = 11;
-const MODEL_ID_TOILET = 12;
-const MODEL_ID_BARS = 13;
-const MODEL_ID_SWITCH = 14;
-const MODEL_ID_CAMERA = 15;
+const MODEL_ID_HEAD = 4;
+const MODEL_ID_TORSO = 5;
+const MODEL_ID_UPPER_ARM = 6;
+const MODEL_ID_FOREARM = 7;
+const MODEL_ID_THIGH = 8;
+const MODEL_ID_CALF = 9;
+const MODEL_ID_BED = 10;
+const MODEL_ID_LIGHT_SWITCH = 11;
+const MODEL_ID_DOOR_SWITCH = 12;
+const MODEL_ID_LOW_WALL = 13;
+const MODEL_ID_DOOR = 14;
 
 const WALL_WIDTH = 5;
 const WALL_HEIGHT = 15;
@@ -42,16 +41,8 @@ const models: ModelDefinition[] = [
   },
   // table
   {
-    [FACE_RIGHT]: [0, 16, 11, 7],
-    [FACE_FRONT]: [11, 16, 13, 7],
-  },
-
-  // spanner
-  {
-    //[FACE_TOP]: [12, 1, 3, 3],
-    [FACE_TOP]: [11, 0, 5, 16],
-    //[FACE_RIGHT]:[16, 0, 1, 16],
-    //[DIMENSION_DEPTH]: .6
+    [FACE_RIGHT]: [0, 15, 11, 8],
+    [FACE_FRONT]: [11, 15, 13, 8],
   },
   // head 1
   {
@@ -96,24 +87,21 @@ const models: ModelDefinition[] = [
     [FACE_LEFT]: [8, 37, BED_WIDTH, 5],
     [FACE_FRONT]: [19, 37, BED_HEIGHT, 5],
   },
-  // toilet
-  {
-    [FACE_FRONT]: [7, 46, 5, 5],
-    [FACE_RIGHT]: [12, 46, 5, 5],
-    [FACE_TOP]: [7, 51, 5, 5],
-  },
-  // bars
-  {
-    [FACE_FRONT]: [25, 34, 6, 18],
-  },
-  // switch
+  // light switch
   {
     [FACE_FRONT]: [34, 30, 3, 4],
   },
-  // camera
+  // door switch
   {
-    [FACE_LEFT]: [15, 23, 9, 7],
-    [FACE_FRONT]: [24, 23, 3, 7],
-    [FACE_BOTTOM]: [27, 23, 3, 9],
-  }
+    [FACE_FRONT]: [37, 24, 5, 10],
+  },
+  // low wall
+  {
+    [FACE_FRONT]: [0, 45, WALL_WIDTH, 6],
+    [DIMENSION_DEPTH]: WALL_WIDTH,
+  },
+  // door
+  {
+    [FACE_FRONT]: [0, 37, WALL_WIDTH, 11],
+  },
 ];

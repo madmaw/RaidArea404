@@ -44,7 +44,7 @@ const badgeDefinitions: ([number, number] | [number])[] = [
   [0x1F332, 34],
 ];
 let badgeCount = 0;
-context.font = `${CONST_BADGE_DIMENSION}px monospace`;
+context.font = `${CONST_BADGE_DIMENSION}px system-ui`;
 context.textAlign = 'center';
 badgeColors.map(textColor => {
   context.fillStyle = textColor;
@@ -65,18 +65,8 @@ badgeColors.map(textColor => {
 });
 
 i.onload = () => {
-  const iAspectRatio = i.width/i.height;
-  const windowAspectRatio = innerWidth/innerHeight;
   const imageWidth = i.width;
   const imageHeight = i.height;
-  if (iAspectRatio > windowAspectRatio) {
-    c.height = i.height = (i.height * innerWidth) / i.width;
-    c.width = i.width = innerWidth;
-  } else {
-    c.height = i.height = innerHeight;
-    c.width = i.width = (i.width * innerHeight) / i.height;
-  }
-  const scale = i.width / imageWidth;
   // GLOBAL!
   modelPerimeters = models.map(model => {
     return extractPerimeters(model, i, imageWidth, imageHeight);
@@ -85,7 +75,17 @@ i.onload = () => {
     return modelToFaces(model, modelPerimeters[i]);
   });
   if (FLAG_DEBUG_MODELS) {
-    const context = c.getContext('2d');
+    const iAspectRatio = i.width/i.height;
+    const windowAspectRatio = innerWidth/innerHeight;
+    if (iAspectRatio > windowAspectRatio) {
+      c.height = i.height = (i.height * innerWidth) / i.width;
+      c.width = i.width = innerWidth;
+    } else {
+      c.height = i.height = innerHeight;
+      c.width = i.width = (i.width * innerHeight) / i.height;
+    }
+    const scale = i.width / imageWidth;
+      const context = c.getContext('2d');
     context.scale(scale, scale)
     context.lineWidth = 1/scale;
     context.font = '1px serif';
@@ -249,6 +249,32 @@ i.onload = () => {
       alpha: false,
     });
 
+    const CONST_GL_RENDERBUFFER = FLAG_USE_GL_CONSTANTS?gl.RENDERBUFFER:0x8D41;
+    const CONST_GL_FRAMEBUFFER = FLAG_USE_GL_CONSTANTS?gl.FRAMEBUFFER:0x8D40;
+    const CONST_GL_DEPTH_COMPONENT16 = FLAG_USE_GL_CONSTANTS?gl.DEPTH_COMPONENT16:0x81A5;
+    const CONST_GL_DEPTH_ATTACHMENT = FLAG_USE_GL_CONSTANTS?gl.DEPTH_ATTACHMENT:0x8D00;
+    const CONST_GL_VERTEX_SHADER = FLAG_USE_GL_CONSTANTS?gl.VERTEX_SHADER:0x8B31;
+    const CONST_GL_FRAGMENT_SHADER = FLAG_USE_GL_CONSTANTS?gl.FRAGMENT_SHADER:0x8B30;
+    const CONST_GL_LINK_STATUS = FLAG_USE_GL_CONSTANTS?gl.LINK_STATUS:0x8B82;
+    const CONST_GL_ELEMENT_ARRAY_BUFFER = FLAG_USE_GL_CONSTANTS?gl.ELEMENT_ARRAY_BUFFER:0x8893;
+    const CONST_GL_COLOR_ATTACHMENT0 = FLAG_USE_GL_CONSTANTS?gl.COLOR_ATTACHMENT0:0x8CE0;
+    const CONST_GL_DEPTH_TEST = FLAG_USE_GL_CONSTANTS?gl.DEPTH_TEST:0x0B71;
+    const CONST_GL_CULL_FACE = FLAG_USE_GL_CONSTANTS?gl.CULL_FACE:0x0B44;
+    const CONST_GL_BLEND = FLAG_USE_GL_CONSTANTS?gl.BLEND:0x0BE2;
+    const CONST_GL_LESS = FLAG_USE_GL_CONSTANTS?gl.LESS:0x0201;
+    const CONST_GL_FRONT = FLAG_USE_GL_CONSTANTS?gl.FRONT:0x0404;
+    const CONST_GL_BACK = FLAG_USE_GL_CONSTANTS?gl.BACK:0x0405;
+    const CONST_GL_COLOR_BUFFER_BIT = FLAG_USE_GL_CONSTANTS?gl.COLOR_BUFFER_BIT:0x4000;
+    const CONST_GL_DEPTH_BUFFER_BIT = FLAG_USE_GL_CONSTANTS?gl.DEPTH_BUFFER_BIT:0x100;
+    const CONST_GL_COLOR_AND_DEPTH_BUFFER_BIT = FLAG_USE_GL_CONSTANTS?gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT:0x4100;
+    const CONST_GL_TEXTURE_2D = FLAG_USE_GL_CONSTANTS?gl.TEXTURE_2D:0x0DE1;
+    const CONST_GL_UNSIGNED_BYTE = FLAG_USE_GL_CONSTANTS?gl.UNSIGNED_BYTE:0x1401;
+    const CONST_GL_UNSIGNED_SHORT = FLAG_USE_GL_CONSTANTS?gl.UNSIGNED_SHORT:0x1403;
+    const CONST_GL_RGBA = FLAG_USE_GL_CONSTANTS?gl.RGBA:0x1908;
+    const CONST_GL_TRIANGLES = FLAG_USE_GL_CONSTANTS?gl.TRIANGLES:0x0004;
+    const CONST_GL_TEXTURE0 = FLAG_USE_GL_CONSTANTS?gl.TEXTURE0:0x84C0;
+    const CONST_GL_TEXTURE1 = FLAG_USE_GL_CONSTANTS?gl.TEXTURE1:0x84C1;
+
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
   const lightingTexture = gl.createTexture();
@@ -258,8 +284,8 @@ i.onload = () => {
   const lightingFrameBuffer = gl.createFramebuffer();
 
   const lightingDepthBuffer = gl.createRenderbuffer();
-  gl.bindRenderbuffer(gl.RENDERBUFFER, lightingDepthBuffer);
-  gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
+  gl.bindRenderbuffer(CONST_GL_RENDERBUFFER, lightingDepthBuffer);
+  gl.renderbufferStorage(CONST_GL_RENDERBUFFER, gl.DEPTH_COMPONENT16, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
 
   mainProgramInputs = initMainProgram(gl, modelsFaces);
 
@@ -340,6 +366,7 @@ i.onload = () => {
         //0,
       ]
     );
+
     if (lights || !FLAG_AVOID_GL_WARNINGS) {
       const paddedLights = new Array(CONST_MAX_LIGHTS).fill(0).map<{
         position: Vector3,
@@ -413,7 +440,7 @@ i.onload = () => {
           const transform = matrix4MultiplyStack([
             matrix4Translate(...entity.position),
             matrix4Rotate(-entity.zRotation, 0, 0, 1),
-            matrix4Scale(1, 1, entity.scale || 1),
+            matrix4Scale(1, 1, entity.scaleZ || 1),
           ]);
           bodyPartRenderer(
             gl,
@@ -444,7 +471,7 @@ i.onload = () => {
         const transform = matrix4MultiplyStack([
           matrix4Translate(...entity.position),
           matrix4Rotate(-entity.zRotation, 0, 0, 1),
-          matrix4Scale(1, 1, entity.scale || 1),
+          matrix4Scale(1, 1, entity.scaleZ || 1),
         ]);
         // is this entity between the camera and the closest light to the camera?
         // const lightEntityNormal = vectorNSubtract(closestLightPosition, entity.position);
@@ -566,10 +593,11 @@ i.onload = () => {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
     gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
-
-    part.children?.map(child => {
+    // closure compiler doesn't like part.children?.map
+    part.children && part.children.map(child => {
       bodyPartRenderer(gl, inputs, child, m, partTransforms, partBadges, palette, renderBackFaces);
     });
+
   };
 
   const rooms = make2DArray<Room>(CONST_WORLD_ROOMS_ACROSS, CONST_WORLD_ROOMS_DOWN, (rx, ry) => {
@@ -581,7 +609,7 @@ i.onload = () => {
   });
   const tiles = make2DArray<Tile>(CONST_WORLD_TILES_ACROSS, CONST_WORLD_TILES_DOWN, () => {
     return {
-      lightSources: 0,
+      lit: 0,
     };
   });
   const world: World = {
@@ -590,7 +618,8 @@ i.onload = () => {
     tiles,
     switches: [],
     activatedCircuits: {
-      0: -9999,
+      9: -9999,
+      1: -9999,
     },
   };
 
@@ -672,11 +701,14 @@ i.onload = () => {
 
     const adjoiningRooms = getAdjoiningRooms(world, rx, ry);
 
-    const litEntities = (engineState.litEntities || []).sort((l1, l2) => {
-      const d1 = vectorNLength(vectorNSubtract(cameraPosition, l1.position as any as Vector3));
-      const d2 = vectorNLength(vectorNSubtract(cameraPosition, l2.position as any as Vector3));
-      return d1 - d2;
-    }).slice(0, CONST_MAX_LIGHTS);
+    const litEntities = (engineState.litEntities || [])
+        .filter(e => e.lightIntensity)
+        .sort((l1, l2) => {
+          const d1 = vectorNLength(vectorNSubtract(cameraPosition, l1.position as any as Vector3));
+          const d2 = vectorNLength(vectorNSubtract(cameraPosition, l2.position as any as Vector3));
+          return d1 - d2;
+        })
+        .slice(0, CONST_MAX_LIGHTS);
 
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
@@ -686,11 +718,11 @@ i.onload = () => {
       shadowGL.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     } else {
 
-      gl.bindFramebuffer(gl.FRAMEBUFFER, lightingFrameBuffer);
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, lightingTexture, 0);
+      gl.bindFramebuffer(CONST_GL_FRAMEBUFFER, lightingFrameBuffer);
+      gl.framebufferTexture2D(CONST_GL_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, lightingTexture, 0);
 
-      gl.bindRenderbuffer(gl.RENDERBUFFER, lightingDepthBuffer);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, lightingDepthBuffer);
+      gl.bindRenderbuffer(CONST_GL_RENDERBUFFER, lightingDepthBuffer);
+      gl.framebufferRenderbuffer(CONST_GL_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, CONST_GL_RENDERBUFFER, lightingDepthBuffer);
 
       gl.enable(gl.DEPTH_TEST);
       gl.disable(gl.BLEND);
@@ -805,7 +837,7 @@ i.onload = () => {
       cameraTanFOVOn2,
       CONST_MAX_VIEW_DISTANCE,
       room.ambientLight,
-      3,
+      4*Math.pow((world.player.deadness || 0)/CONST_MAX_DEADNESS, 2),
       litEntities,
     );
 

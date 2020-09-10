@@ -34,7 +34,7 @@ const ADJOINS = [
 
 type Tile = {
   staticEntity?: Entity,
-  lightSources: number,
+  lit: boolean | 0 | 1,
 }
 
 
@@ -55,15 +55,17 @@ const COLLISION_TYPE_SENSOR = 2;
 
 const INTELLIGENCE_USER_CONTROLLED = 1;
 const INTELLIGENCE_ARTIFICIAL_SHADOW_MONSTER = 2;
-const INTELLIGENCE_ARTIFICIAL_CAMERA = 3;
+// const INTELLIGENCE_ARTIFICIAL_CAMERA = 3;
 const INTELLIGENCE_ARTIFICIAL_LIGHT = 4;
 const INTELLIGENCE_ARTIFICIAL_SWITCH = 5;
+const INTELLIGENCE_ARTIFICIAL_DOOR = 6;
 
 const ACTION_WALK = 1;
 const ACTION_RUN = 2;
 const ACTION_ACTIVATE = 3;
-const ACTION_CHOKING = 4;
-const ACTION_CHOKER = 5;
+const ACTION_CROUCH = 4;
+const ACTION_CHOKING = 5;
+const ACTION_CHOKER = 6;
 
 type CollisionType = -1 | 0 | 1 | 2;
 
@@ -71,7 +73,7 @@ type BaseEntity = {
   id: number,
   position: Vector3,
   velocity: Vector3,
-  scale?: number,
+  scaleZ?: number,
   collisionRadius: number,
   renderRadius: number,
   palette: Vector4[],
@@ -90,6 +92,7 @@ type BaseEntity = {
   lightProjection?: Matrix4 | undefined,
   lightTanFOVOn2?: number,
   lightIntensity?: number,
+  zPositionRange?: Vector2,
 };
 
 type InertEntity = {
@@ -99,19 +102,21 @@ type InertEntity = {
 type PlayerEntity = {
   intelligence: 1, // user controlled
   lastChoked?: number,
+  deadness?: number,
 } & BaseEntity;
 
 type MonsterEntity = {
   intelligence: 2, // monster
   path?: Vector2[],
   active?: boolean | 1 | 0,
-  fleeing?: boolean | 1 | 0,
+  anger?: -1 | 0 | 1,
   waitDuration?: number,
+  lastDetectedPlayer?: Vector3,
 } & BaseEntity;
 
-type CameraEntity = {
-  intelligence: 3, // camera
-} & BaseEntity;
+// type CameraEntity = {
+//   intelligence: 3, // camera
+// } & BaseEntity;
 
 type LightEntity = {
   intelligence: 4, // light
@@ -123,9 +128,15 @@ type LightEntity = {
 type SwitchEntity = {
   intelligence: 5, // switch
   circuit?: number,
+  playerHasInteractedWith?: boolean | 0 | 1,
 } & BaseEntity;
 
-type Entity = InertEntity | PlayerEntity | MonsterEntity | CameraEntity | LightEntity | SwitchEntity;
+type DoorEntity = {
+  intelligence: 6, // door
+  circuit?: number,
+} & BaseEntity;
+
+type Entity = InertEntity | PlayerEntity | MonsterEntity | LightEntity | SwitchEntity | DoorEntity;
 
 type BodyPart = {
   attachmentPoint?: Vector3,
@@ -163,6 +174,8 @@ type Anim = {
   keyFrames: KeyFrame[],
   frameDuration: number,
   repeating?: boolean | number,
+  sound?: SoundEffect3D,
+  soundLoopTime?: number,
 }
 
 type ActiveAnim = {

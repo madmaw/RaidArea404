@@ -17,7 +17,7 @@
 
 const HUMAN_BODY: BodyPart = {
   id: PART_ID_TORSO,
-  attachmentPoint: [0, 0, .85],
+  attachmentPoint: [0, 0, .88],
   paletteIndices: [5, 4, 3, 5],
   attachmentTransform: matrix4MultiplyStack([
     matrix4Scale(.08),

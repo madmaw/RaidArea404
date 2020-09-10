@@ -14,6 +14,11 @@ type RoomDefinition = {
 // GLOBALS!!!
 let modelPerimeters: PerimeterPoint[][][];
 let mainProgramInputs: MainProgramInputs;
+const STEP_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .05, .02, 2e3, .06, .03));
+const RUN_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .05, .01, 1e3, .2, .1));
+const MONSTER_SHUFFLE_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .03, .02, 799, .2, .1));
+const CHOKING_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .5, .2, 499, .1, .05));
+const SWITCH_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .02, 0, 3e3, .2, .1));
 
 let nextEntityId = 10;
 function makeStaticEntity(
@@ -35,11 +40,16 @@ function makeStaticEntity(
   const lrx = (cx | 0) - rx * CONST_ROOM_DIMENSION;
   const lry = (cy | 0) - ry * CONST_ROOM_DIMENSION;
 
+  const rightChar = roomDefinition.layout[lry*CONST_ROOM_DIMENSION + lrx+1];
+  const leftChar = roomDefinition.layout[lry*CONST_ROOM_DIMENSION + lrx-1];
+  const belowChar = roomDefinition.layout[(lry+1)*CONST_ROOM_DIMENSION + lrx];
+  const aboveChar = roomDefinition.layout[(lry-1)*CONST_ROOM_DIMENSION + lrx]
+
   const zRotation = alternateAngle
-      ? roomDefinition.layout[lry*CONST_ROOM_DIMENSION + lrx+1] == '#' || lrx == CONST_ROOM_DIMENSION-1
+      ? rightChar == '#' || lrx == CONST_ROOM_DIMENSION-1 || leftChar != '#' && lrx > CONST_ROOM_DIMENSION/2
           ? Math.PI
           : 0
-      : roomDefinition.layout[(lry+1)*CONST_ROOM_DIMENSION + lrx] == '#' || lry == CONST_ROOM_DIMENSION-1
+      : belowChar == '#' || lry == CONST_ROOM_DIMENSION-1 || aboveChar != '#' && lry > CONST_ROOM_DIMENSION/2
           ? -Math.PI/2
           : Math.PI/2;
 
@@ -81,6 +91,7 @@ function makeStaticEntity(
     collisionRadius: vectorNLength(halfBounds.slice(0, 2).concat(0)) * scale * collisionRadiusAdjust,
     renderRadius: vectorNLength(halfBounds) * scale,
     body: {
+      id: 0,
       attachmentTransform: matrix4MultiplyStack([
         matrix4Scale(scale),
         matrix4Translate(0, 0, halfBounds[2]),
@@ -98,14 +109,24 @@ function makeStaticEntity(
 const switchFeatureFactory = (world: World, x: number, y: number, alternateAngle: boolean | number, char: string) => {
   const circuit = char.toLowerCase().charCodeAt(0) - 97; // a
   const palette: Vector4[] = [
-    [.7, .7, .7, 1],
-    [0, 0, 0, 1],
-    [0, 0, 0, 1],
+    COLOR_WHITE,
+    COLOR_GREY,
+    COLOR_GREY,
+    COLOR_GREY,
   ];
-  const entity = makeStaticEntity(MODEL_ID_SWITCH, x, y, .05, COLLISION_TYPE_SENSOR, alternateAngle, palette, 0, 1.3) as SwitchEntity;
-  entity.collisionRadius = .5;
+  const doorSwitch = circuit < CONST_DOOR_SWITCH_CUT_OFF;
+
+  const entity = doorSwitch
+      ? makeStaticEntity(MODEL_ID_DOOR_SWITCH, x, y, .05, COLLISION_TYPE_SENSOR, alternateAngle, palette, 0, 1.3) as SwitchEntity
+      : makeStaticEntity(MODEL_ID_LIGHT_SWITCH, x, y, .05, COLLISION_TYPE_SENSOR, alternateAngle, palette, 0, 1.3) as SwitchEntity;
+  entity.collisionRadius = .7;
   entity.intelligence = INTELLIGENCE_ARTIFICIAL_SWITCH;
   entity.circuit = circuit;
+  if (doorSwitch) {
+    entity.badges = {
+      0: [[2, 0, 2, circuit + 4]],
+    };
+  }
   world.switches.push(entity);
   addEntity(world, entity);
 }
@@ -136,13 +157,37 @@ const lightFeatureFactory = (world: World, x: number, y: number, alternateAngle:
   let i = 32;
   while (i) {
     i--;
-    if (Math.random()*i/32<circuit/99) {
+    if (Math.random()*i/32<(9-circuit)/99) {
       entity.flicker = entity.flicker | (1 << i);
     }
   }
 
   addEntity(world, entity);
 }
+
+const doorFactory = (world: World, x: number, y: number, alternateAngle: boolean | number, char: string) => {
+  const circuit =  122 - char.toLowerCase().charCodeAt(0); // z
+  const palette: Vector4[] = [
+    COLOR_WALL,
+    COLOR_WALL,
+    COLOR_OFF_WHITE,
+    COLOR_TRANSLUCENT,
+  ];
+  const door = makeStaticEntity(MODEL_ID_DOOR, x, y, -1, COLLISION_TYPE_STATIC, alternateAngle, palette, 1) as DoorEntity;
+  door.intelligence = INTELLIGENCE_ARTIFICIAL_DOOR;
+  door.circuit = circuit;
+  door.zPositionRange = [0, door.depth*.9];
+  door.invisible = 1;
+
+  const wall = makeStaticEntity(MODEL_ID_LOW_WALL, x, y, 1, COLLISION_TYPE_STATIC, alternateAngle, [COLOR_OFF_WHITE], 1, door.depth);
+  wall.badges = {
+    0: [[.8, 0, -1.7, circuit + 4], [.8, Math.PI, -1.7, circuit + 4]],
+  };
+  addEntity(world, wall);
+
+  // add this second, very important, otherwise pathfinding will break
+  addEntity(world, door);
+};
 
 const globalFloorAndCeilingFactory = (world: World, x, y, alternateAngle, originalChar: string) => {
   if (originalChar != '#') {
@@ -173,25 +218,49 @@ const globalFloorAndCeilingFactory = (world: World, x, y, alternateAngle, origin
 const globalLegend: {[_: string]: RoomFeatureFactory} = {
   '#': (world, x, y, alternateAngle) => {
     const wallPalette: Vector4[] = [
-      [.6, .6, .6, 1],
-      [.6, .6, .6, 1],
-      [.3, .3, .5, 1],
-      [.6, .6, .6, 1],
+      COLOR_OFF_WHITE,
+      COLOR_OFF_WHITE,
+      COLOR_WALL,
+      COLOR_OFF_WHITE,
     ];
     addEntity(world, makeStaticEntity(MODEL_ID_WALL, x, y, 1, COLLISION_TYPE_STATIC, alternateAngle, wallPalette))
+  },
+  '-': (world, x, y, alternateAngle) => {
+    const wallPalette: Vector4[] = [
+      COLOR_OFF_WHITE,
+      COLOR_WHITE,
+      COLOR_WALL,
+      COLOR_WHITE,
+    ];
+    const entity = makeStaticEntity(MODEL_ID_WALL, x, y, 1, COLLISION_TYPE_STATIC, alternateAngle, wallPalette);
+    if (x == 4) {
+      entity.badges = {
+        0: [[1, Math.PI/2, 2, 12], [1, -Math.PI/2, 2, 12]]
+      };
+    }
+    addEntity(world, entity)
   },
   'q': (world, x, y, alternateAngle) => {
     addEntity(world, makeStaticEntity(MODEL_ID_BED, x, y, -1, COLLISION_TYPE_STATIC, alternateAngle));
   },
-  't': (world, x, y, alternateAngle) => {
-    addEntity(world, makeStaticEntity(MODEL_ID_TOILET, x, y, .6, COLLISION_TYPE_STATIC, alternateAngle));
-  },
   'l': (world, x, y, alternateAngle) => {
-    addEntity(world, makeStaticEntity(MODEL_ID_TABLE, x, y, 1, COLLISION_TYPE_STATIC, alternateAngle));
+    const palette: Vector4[] = [
+      COLOR_OFF_WHITE,
+      COLOR_WOOD_LIGHT,
+    ];
+    addEntity(world, makeStaticEntity(MODEL_ID_TABLE, x, y, 1, COLLISION_TYPE_STATIC, alternateAngle, palette));
+  },
+  '+': (world, x, y, alternateAngle) => {
+    const palette: Vector4[] = [
+      COLOR_OFF_WHITE,
+      COLOR_WOOD_DARK
+    ];
+    addEntity(world, makeStaticEntity(MODEL_ID_LOW_WALL, x, y, 1, COLLISION_TYPE_STATIC, alternateAngle, palette));
   },
   'r': (world, x, y, alternateAngle) => {
     const palette: Vector4[] = [
-      [.4, .3, .2, 1],
+      COLOR_OFF_WHITE,
+      COLOR_WOOD_LIGHT,
     ];
     addEntity(world, makeStaticEntity(MODEL_ID_CHAIR, x, y, .55, COLLISION_TYPE_STATIC, alternateAngle, palette, 1));
   },
@@ -201,15 +270,16 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
     const definition = roomDefinitions[rx][ry];
     const room = world.rooms[rx][ry];
     room.cameraPosition = [x, y, (definition.depth || DEFAULT_DEPTH)-.2];
-    const palette: Vector4[] = [
-      [.6, .6, .6, 1],
-      [.3, .3, .3, 1],
-      [.3, .3, .3, 1],
-      [1, 0, 0, 1],
-    ];
-    const camera = makeStaticEntity(MODEL_ID_CAMERA, x, y, .3, COLLISION_TYPE_NONE, 0, palette, 1, (definition.depth || DEFAULT_DEPTH)-.1);
-    camera.intelligence = INTELLIGENCE_ARTIFICIAL_CAMERA;
-    addEntity(world, camera);
+    // camera entity, not very useful
+    // const palette: Vector4[] = [
+    //   [.6, .6, .6, 1],
+    //   [.3, .3, .3, 1],
+    //   [.3, .3, .3, 1],
+    //   [1, 0, 0, 1],
+    // ];
+    // const camera = makeStaticEntity(MODEL_ID_CAMERA, x, y, .3, COLLISION_TYPE_NONE, 0, palette, 1, (definition.depth || DEFAULT_DEPTH)-.1);
+    // camera.intelligence = INTELLIGENCE_ARTIFICIAL_CAMERA;
+    // addEntity(world, camera);
   },
   // '*': (room, x, y) => {
   //   const definition = roomDefinitions[x/ROOM_DIMENSION | 0][y/ROOM_DIMENSION | 0];
@@ -230,7 +300,7 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
       body: HUMAN_BODY,
       position: [x, y, 0],
       depth: 1.5,
-      scale: 1.2,
+      scaleZ: 1.2,
       collisionRadius: .2,
       renderRadius: 1,
       velocity: [0, 0, 0],
@@ -247,12 +317,21 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
       },
       animations:{
         [ACTION_WALK]: {
-          frameDuration: 100,
+          frameDuration: 150,
           keyFrames: makeWalkCycle(.5),
+          sound: MONSTER_SHUFFLE_SOUND,
+          soundLoopTime: 300,
+        },
+        [ACTION_RUN]: {
+          frameDuration: 75,
+          keyFrames: makeWalkCycle(.5),
+          sound: MONSTER_SHUFFLE_SOUND,
+          soundLoopTime: 150,
         },
         [ACTION_ACTIVATE]: {
           frameDuration: 500,
           keyFrames: HUMAN_ACTIVATION_POSE,
+          sound: SWITCH_SOUND,
         },
         [ACTION_CHOKER]: {
           frameDuration: 300,
@@ -339,8 +418,8 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
       ],
       body: HUMAN_BODY,
       position: [x, y, 0],
-      depth: 1.5,
-      scale: 1.1,
+      depth: 1.3,
+      scaleZ: 1.1,
       collisionRadius: .2,
       renderRadius: 1,
       velocity: [0, 0, 0],
@@ -371,27 +450,33 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
           frameDuration: 300,
           keyFrames: makeWalkCycle(1),
           repeating: 1,
+          sound: STEP_SOUND,
+          soundLoopTime: 600,
         },
         [ACTION_RUN]: {
           frameDuration: 300,
           keyFrames: makeWalkCycle(2),
           repeating: 1,
+          sound: RUN_SOUND,
+          soundLoopTime: 600,
         },
         [ACTION_ACTIVATE]: {
           frameDuration: 500,
           keyFrames: HUMAN_ACTIVATION_POSE,
+          sound: SWITCH_SOUND,
         },
         [ACTION_CHOKING]: {
-          frameDuration: 300,
+          frameDuration: 200,
           keyFrames: HUMAN_CHOKING_POSE,
-          repeating: 1,
+          sound: CHOKING_SOUND
         },
-        [ACTION_CHOKER]: {
+        [ACTION_CROUCH]: {
           frameDuration: 300,
-          keyFrames: HUMAN_CHOKER_POSE,
+          keyFrames: HUMAN_CROUCH_POSE,
           repeating: 1,
         }
       },
+      zPositionRange: [-.5, 0],
       //invisible: 1,
     };
     world.player = player;
@@ -406,42 +491,52 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
   'g': switchFeatureFactory,
   'h': switchFeatureFactory,
   'i': switchFeatureFactory,
+  'z': doorFactory,
+  'y': doorFactory,
+  'x': doorFactory,
+  'w': doorFactory,
   '0': lightFeatureFactory,
   '1': lightFeatureFactory,
   '2': lightFeatureFactory,
   '3': lightFeatureFactory,
   '4': lightFeatureFactory,
   '5': lightFeatureFactory,
+  '6': lightFeatureFactory,
+  '7': lightFeatureFactory,
+  '8': lightFeatureFactory,
+  '9': lightFeatureFactory,
 };
 
 const roomDefinitions: RoomDefinition[][] = [
   [
     // 0,0
     {
+      depth: 2.8,
       adjoiningRooms: ADJOIN_EAST,
-      ambientLight: .1,
+      ambientLight: 0,
       layout:
         '  #######'+
-        '  #Q____#'+
-        '  #__@__#'+
-        '  #____A#'+
-        '  #__&0__'+
-        '  #T____#'+
+        '  #Q_@__#'+
         '  #_____#'+
+        '  #_____#'+
+        '  #&_9__Y'+
+        '  #____B#'+
+        '  #__l__#'+
         '  #Q!___#'+
         '  #######'
     },
     // 0,1
     {
+      adjoiningRooms: ADJOIN_EAST,
       layout:
-        '#########'+
-        '#r_rcr_r#'+
-        '#l_l*l_l#'+
-        '#!_r_r_r#'+
+        '###---###'+
+        '#___5___#'+
+        '#__+++__#'+
+        '#________'+
         '#l_l_l_l#'+
-        '#_______#'+
-        '#___2____'+
-        '#_______#'+
+        '#r_r_r_r#'+
+        '#l_l_l_l#'+
+        '#!_rfr_r#'+
         '#########'
     }
   ],
@@ -452,7 +547,7 @@ const roomDefinitions: RoomDefinition[][] = [
       layout:
         '#########'+
         '!________'+
-        '_1___x___'+
+        '_1_______'+
         '___######'+
         '___#     '+
         '__B#     '+
@@ -482,7 +577,7 @@ const roomDefinitions: RoomDefinition[][] = [
       layout:
         '#########'+
         '_______!#'+
-        '_*___x__#'+
+        '________#'+
         '________#'+
         '#_______#'+
         '#_______#'+
@@ -497,8 +592,8 @@ const roomDefinitions: RoomDefinition[][] = [
         '###_#####'+
         '________#'+
         '___3_D#_#'+
-        '_*___!__#'+
-        '#_______#'+
+        '_____!__#'+
+        '#l______#'+
         '#_______#'+
         '#_______#'+
         '#_______#'+

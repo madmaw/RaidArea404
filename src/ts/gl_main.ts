@@ -84,6 +84,7 @@ const L_BADGE = FLAG_LONG_SHADER_NAMES ? 'lBadge' : 'p';
 const L_ANGLE = FLAG_LONG_SHADER_NAMES ? 'lAngle' : 'o';
 const L_Y = FLAG_LONG_SHADER_NAMES ? 'lY' : 'n';
 const L_BADGE_COLOR = FLAG_LONG_SHADER_NAMES ? 'lBadgeColor' : 'm';
+const L_TEMP_COLOR = FLAG_LONG_SHADER_NAMES ? 'lTempColor' : 'l';
 
 const PRECISION = 'highp';
 
@@ -139,7 +140,7 @@ void main() {
         ${L_COLOR}=${U_PALETTE}[${L_PALETTE_NDX}];
       }
     }
-    vec4 originalColor=${L_COLOR};
+    vec4 ${L_TEMP_COLOR}=${L_COLOR};
     if(dot(${L_CAMERA_DELTA},${V_SURFACE_NORMAL})>.0) {
       for(int ${L_BADGE_NDX}=0;${L_BADGE_NDX}<${CONST_MAX_BADGES};${L_BADGE_NDX}++) {
         vec4 ${L_BADGE}=${U_BADGES}[${L_BADGE_NDX}];
@@ -158,21 +159,20 @@ void main() {
         }
       }
     }
-    ${L_LIGHT}=pow(mix(${L_COLOR}.r,max(originalColor.r,originalColor.g),originalColor.a),${U_LIGHT}.x)+${U_LIGHT}.z;
+    ${L_LIGHT}=pow(mix(${L_COLOR}.r,max(${L_TEMP_COLOR}.r,${L_TEMP_COLOR}.g),${L_TEMP_COLOR}.a),${U_LIGHT}.x+3.0)+${U_LIGHT}.z;
 
     for (int ${L_LIGHT_NDX}=0;${L_LIGHT_NDX}<${CONST_MAX_LIGHTS};${L_LIGHT_NDX}++){
       vec4 ${L_SHADOW_POSITION}=${U_LIGHT_PROJECTIONS}[${L_LIGHT_NDX}]*(${V_POSITION});
       vec3 ${L_SHADOW_SCREEN_COORDINATE}=${L_SHADOW_POSITION}.xyz/${L_SHADOW_POSITION}.w;
       vec3 ${L_LIGHT_DELTA}=(${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}]-${V_POSITION}).xyz;
       if(length(${L_SHADOW_SCREEN_COORDINATE}.xy)<1.0&&${L_SHADOW_SCREEN_COORDINATE}.z>.0) {
-        vec4 shadowColor=texture2D(${U_LIGHT_TEXTURES},(${L_SHADOW_SCREEN_COORDINATE}.xy+1.0)/${CONST_LIGHTING_GRID_DIMENSION*2}.0+vec2(mod(float(${L_LIGHT_NDX}),${CONST_LIGHTING_GRID_DIMENSION}.0),float(${L_LIGHT_NDX}/${CONST_LIGHTING_GRID_DIMENSION}))/${CONST_LIGHTING_GRID_DIMENSION}.0);
-        float ${L_SHADOW_DISTANCE}=shadowColor.a*${CONST_MAX_LIGHT_DISTANCE};
+        float ${L_SHADOW_DISTANCE}=texture2D(${U_LIGHT_TEXTURES},(${L_SHADOW_SCREEN_COORDINATE}.xy+1.0)/${CONST_LIGHTING_GRID_DIMENSION*2}.0+vec2(mod(float(${L_LIGHT_NDX}),${CONST_LIGHTING_GRID_DIMENSION}.0),float(${L_LIGHT_NDX}/${CONST_LIGHTING_GRID_DIMENSION}))/${CONST_LIGHTING_GRID_DIMENSION}.0).a*${CONST_MAX_LIGHT_DISTANCE};
         if(${L_SHADOW_DISTANCE}+.1>length(${L_LIGHT_DELTA})) {
           ${L_LIGHT}+=pow(max(1.0-${L_COLOR}.a,dot(normalize(${L_LIGHT_DELTA}),normalize(${V_SURFACE_NORMAL})))*(1.0-pow(length(${L_SHADOW_SCREEN_COORDINATE}.xy),9.9)),2.0)*max(.0, ${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}].w-length(${L_LIGHT_DELTA})/(${CONST_MAX_LIGHT_DISTANCE})*pow(${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}].w,.5));
         }
       }
     }
-    gl_FragColor = vec4(${L_COLOR}.rgb*${L_LIGHT}*pow(max(.0, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_VIEW_DISTANCE}.0),.8),${L_COLOR}.a+(1.0-${L_COLOR}.a)*${L_LIGHT});
+    gl_FragColor = vec4(${L_COLOR}.rgb*${L_LIGHT}*pow(max(.0, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_VIEW_DISTANCE}.0),.8),${L_COLOR}.a+(1.0-${L_COLOR}.a)*(${L_LIGHT}+pow(${U_LIGHT}.x+.6,2.0)));
   } else {
     gl_FragColor = vec4(length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});
   }

@@ -45,8 +45,7 @@ function makeWalkCycle(scale: number) {
   const walk4 = reversePose(walk2);
   walk3[PART_ID_TORSO][1] = walk1[PART_ID_TORSO][1];
   walk4[PART_ID_TORSO][1] = walk2[PART_ID_TORSO][1];
-  return [walk1, walk2, walk3, walk4];
-  //return [walk1, walk3];
+  return [walk2, walk3, walk4, walk1];
 }
 
 const HUMAN_ACTIVATION_POSE: KeyFrame[] = [
@@ -70,6 +69,17 @@ const HUMAN_ACTIVATION_POSE: KeyFrame[] = [
     [PART_ID_RIGHT_UPPER_LEG]: [0, -Math.PI/3, -Math.PI/24],
     [PART_ID_RIGHT_LOWER_LEG]: [Math.PI/4, 0, 0],
   },
+];
+
+const HUMAN_CROUCH_POSE: KeyFrame[] = [
+  {
+    [PART_ID_LEFT_UPPER_ARM]: [0, -Math.PI/8, 0],
+    [PART_ID_TORSO]: [0, Math.PI/6, 0],
+    [PART_ID_HEAD]: [0, -Math.PI/8, 0],
+    [PART_ID_LEFT_UPPER_LEG]: [0, -Math.PI*.65, 0],
+    [PART_ID_LEFT_LOWER_LEG]: [Math.PI*.6, 0, 0],
+    [PART_ID_RIGHT_LOWER_LEG]: [Math.PI*.6, 0, 0],
+  }
 ];
 
 const chokingKeyFrame1: KeyFrame = {
