@@ -21,7 +21,7 @@ const HUMAN_BODY: BodyPart = {
   paletteIndices: [5, 4, 3, 5],
   attachmentTransform: matrix4MultiplyStack([
     matrix4Scale(.08),
-    matrix4Rotate(Math.PI/30, 0, 1, 0),
+    matrix4Rotate(CONST_PI_ON_30_2DP, 0, 1, 0),
     matrix4Translate(0, 0, 3.5),
   ]),
   //badges: [[2, Math.PI, 1.5, 131]],
@@ -31,7 +31,7 @@ const HUMAN_BODY: BodyPart = {
   //   [1, -Math.PI*.8, 1, 7]
   // ],
   modelId: MODEL_ID_TORSO,
-  children: [
+  childParts: [
     {
       id: PART_ID_HEAD,
       modelId: MODEL_ID_HEAD,
@@ -46,7 +46,7 @@ const HUMAN_BODY: BodyPart = {
       //   [1, Math.PI/7, 1.4, 1],
       // ],
       attachmentTransform: matrix4MultiplyStack([
-        matrix4Rotate(-Math.PI/30, 0, 1, 0),
+        matrix4Rotate(-CONST_PI_ON_30_2DP, 0, 1, 0),
         matrix4Scale(.5),
         matrix4Translate(0, 0, 3),
       ]),
@@ -63,20 +63,20 @@ const HUMAN_BODY: BodyPart = {
         //matrix4Rotate(0, 1, 0, -Math.PI/5),
         //matrix4Rotate(1, 0, 0, -Math.PI/2),
         matrix4Scale(.8),
-        matrix4Rotate(-Math.PI/50, 1, 0, 0),
-        matrix4Rotate(Math.PI/20, 0, 1, 0),
+        matrix4Rotate(-CONST_PI_ON_50_2DP, 1, 0, 0),
+        matrix4Rotate(CONST_PI_ON_20_2DP, 0, 1, 0),
         matrix4Translate(0, 0, -2),
-        matrix4Rotate(-Math.PI/2, 0, 0, 1),
+        matrix4Rotate(-CONST_PI_ON_2_1DP, 0, 0, 1),
       ]),
-      children: [
+      childParts: [
         {
           id: PART_ID_RIGHT_LOWER_ARM,
           modelId: MODEL_ID_FOREARM,
           attachmentPoint: [0, .5, -3],
           paletteIndices: [6, 1, 1],
           attachmentTransform: matrix4MultiplyStack([
-            matrix4Rotate(Math.PI/6, 1, 0, 0),
-            matrix4Rotate(Math.PI/9, 0, 0, 1),
+            matrix4Rotate(CONST_PI_ON_6_1DP, 1, 0, 0),
+            matrix4Rotate(CONST_PI_ON_9_1DP, 0, 0, 1),
             matrix4Translate(1, -.5, -2.8),
           ]),
         }
@@ -94,22 +94,22 @@ const HUMAN_BODY: BodyPart = {
         //
         //matrix4Rotate(1, 0, 0, Math.PI/5),
         matrix4Scale(.8),
-        matrix4Rotate(-Math.PI/50, 1, 0, 0),
-        matrix4Rotate(Math.PI/20, 0, 1, 0),
+        matrix4Rotate(-CONST_PI_ON_50_2DP, 1, 0, 0),
+        matrix4Rotate(CONST_PI_ON_20_2DP, 0, 1, 0),
         matrix4Translate(0, 0, -2),
         //matrix4Rotate(0, 0, 1, Math.PI),
-        matrix4Rotate(-Math.PI/2, 0, 0, 1),
+        matrix4Rotate(-CONST_PI_ON_2_1DP, 0, 0, 1),
       ]),
-      children: [
+      childParts: [
         {
           id: PART_ID_LEFT_LOWER_ARM,
           modelId: MODEL_ID_FOREARM,
           attachmentPoint: [0, .5, -3],
           paletteIndices: [6, 1, 1],
           attachmentTransform: matrix4MultiplyStack([
-            matrix4Rotate(Math.PI/6, 1, 0, 0),
+            matrix4Rotate(CONST_PI_ON_6_1DP, 1, 0, 0),
             //matrix4Rotate(Math.PI/9, 0, 1, 0),
-            matrix4Rotate(Math.PI/9, 0, 0, 1),
+            matrix4Rotate(CONST_PI_ON_9_1DP, 0, 0, 1),
             matrix4Translate(1, -.5, -2.8),
           ]),
         }
@@ -119,24 +119,24 @@ const HUMAN_BODY: BodyPart = {
     {
       id: PART_ID_RIGHT_UPPER_LEG,
       modelId: MODEL_ID_THIGH,
-      attachmentPoint: [.4, -.2, -2],
+      attachmentPoint: [.4, -.6, -2],
       paletteIndices: [3, 3, 7],
       attachmentTransform: matrix4MultiplyStack([
-        matrix4Rotate(Math.PI/20, 1, 0, 0),
-        matrix4Rotate(-Math.PI/20, 0, 1, 0),
+        matrix4Rotate(CONST_PI_ON_20_2DP, 1, 0, 0),
+        matrix4Rotate(-CONST_PI_ON_20_2DP, 0, 1, 0),
         matrix4Translate(-.5, 0, -3.7),
-        matrix4Rotate(Math.PI * .55, 0, 0, 1),
+        matrix4Rotate(CONST_PI_ON_1_8_1DP, 0, 0, 1),
       ]),
-      children: [
+      childParts: [
         {
           id: PART_ID_RIGHT_LOWER_LEG,
           modelId: MODEL_ID_CALF,
-          attachmentPoint: [0, 0, -3.5],
+          attachmentPoint: [-.2, 0, -3],
           paletteIndices: [7, 2, 8],
           attachmentTransform: matrix4MultiplyStack([
-            matrix4Rotate(Math.PI/20, 0, 1, 0),
-            matrix4Translate(0, 0, -2.3),
-            matrix4Rotate(Math.PI/2, 0, 0, 1),
+            matrix4Rotate(CONST_PI_ON_20_2DP, 0, 1, 0),
+            matrix4Translate(0, 0, -2.8),
+            matrix4Rotate(CONST_PI_ON_2_1DP, 0, 0, 1),
           ]),
         }
       ]
@@ -144,25 +144,25 @@ const HUMAN_BODY: BodyPart = {
     {
       id: PART_ID_LEFT_UPPER_LEG,
       modelId: MODEL_ID_THIGH,
-      attachmentPoint: [.4, .2, -2],
+      attachmentPoint: [.4, .6, -2],
       paletteIndices: [3, 3, 7],
       flipY: 1,
       attachmentTransform: matrix4MultiplyStack([
-        matrix4Rotate(Math.PI/20, 1, 0, 0),
-        matrix4Rotate(-Math.PI/20, 0, 1, 0),
+        matrix4Rotate(CONST_PI_ON_20_2DP, 1, 0, 0),
+        matrix4Rotate(-CONST_PI_ON_20_2DP, 0, 1, 0),
         matrix4Translate(-.5, 0, -3.7),
-        matrix4Rotate(Math.PI * .55, 0, 0, 1),
+        matrix4Rotate(CONST_PI_ON_1_8_1DP, 0, 0, 1),
       ]),
-      children: [
+      childParts: [
         {
           id: PART_ID_LEFT_LOWER_LEG,
           modelId: MODEL_ID_CALF,
-          attachmentPoint: [0, 0, -3.5],
+          attachmentPoint: [-.2, 0, -3],
           paletteIndices: [7, 2, 8],
           attachmentTransform: matrix4MultiplyStack([
-            matrix4Rotate(Math.PI/20, 0, 1, 0),
-            matrix4Translate(0, 0, -2.3),
-            matrix4Rotate(Math.PI/2, 0, 0, 1),
+            matrix4Rotate(CONST_PI_ON_20_2DP, 0, 1, 0),
+            matrix4Translate(0, 0, -2.8),
+            matrix4Rotate(CONST_PI_ON_2_2DP, 0, 0, 1),
           ]),
         }
       ]

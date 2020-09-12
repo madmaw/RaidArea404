@@ -14,7 +14,7 @@ const MATRIX4_IDENTITY: Matrix4 = [
     0, 0, 0, 1
 ];
 
-let matrix4Identity = function(): Matrix4 {
+let matrix4Identity = (): Matrix4 => {
     return [
         1, 0, 0, 0,
         0, 1, 0, 0,
@@ -23,7 +23,7 @@ let matrix4Identity = function(): Matrix4 {
     ];
 }
 
-let matrix4Invert = function(a: Matrix4): Matrix4 {
+let matrix4Invert = (a: Matrix4): Matrix4 => {
 
     // TODO there's got to be a couple of loops that can achieve this effectively (and smaller)
     let a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
@@ -59,7 +59,7 @@ let matrix4Invert = function(a: Matrix4): Matrix4 {
 
 }
 
-let matrix4Multiply = function(a: Matrix4, b: Matrix4): Matrix4 {
+let matrix4Multiply = (a: Matrix4, b: Matrix4): Matrix4 => {
     const out: Matrix4 = [] as any;
     for( let x=0; x<16; x++ ) {
         let i = x >> 2;
@@ -73,14 +73,14 @@ let matrix4Multiply = function(a: Matrix4, b: Matrix4): Matrix4 {
     return out as any;
 }
 
-let matrix4MultiplyStack = function(matrices: Matrix4[]): Matrix4 {
+let matrix4MultiplyStack = (matrices: Matrix4[]): Matrix4 => {
     return matrices.reduce(
         matrix4Multiply,
         matrix4Identity()
     );
 }
 
-let matrix4Perspective = function(tanFovyDiv2: number, aspect: number, znear: number, zfar: number): Matrix4 {
+let matrix4Perspective = (tanFovyDiv2: number, aspect: number, znear: number, zfar: number): Matrix4 => {
 
     /*
     var top = znear * tan(fovy / 2);
@@ -110,7 +110,18 @@ let matrix4Perspective = function(tanFovyDiv2: number, aspect: number, znear: nu
     ];
 }
 
-let matrix4PerspectiveFlippedY = function(tanFovyDiv2: number, aspect: number, znear: number, zfar: number): Matrix4 {
+let matrix4InfinitePerspective = (tanFovyDiv2: number, aspect: number, znear: number): Matrix4 => {
+    let f = 1 / tanFovyDiv2;
+    return [
+        f/aspect, 0, 0, 0,
+        0, f, 0, 0,
+        0, 0, -1, -1,
+        0, 0, -2 * znear, 0
+    ];
+
+};
+
+let matrix4PerspectiveFlippedY = (tanFovyDiv2: number, aspect: number, znear: number, zfar: number): Matrix4 => {
     let f = 1 / tanFovyDiv2;
     let nf = 1 / (znear - zfar);
     return [
@@ -121,7 +132,7 @@ let matrix4PerspectiveFlippedY = function(tanFovyDiv2: number, aspect: number, z
     ];
 }
 
-function matrix4RotateInOrder(rx: number, ry: number, rz: number): Matrix4 {
+let matrix4RotateInOrder = (rx: number, ry: number, rz: number): Matrix4 => {
     return matrix4MultiplyStack([
         matrix4Rotate(rx, 1, 0, 0),
         matrix4Rotate(ry, 0, 1, 0),
@@ -129,7 +140,7 @@ function matrix4RotateInOrder(rx: number, ry: number, rz: number): Matrix4 {
     ]);
 }
 
-function matrix4Rotate(rad: number, x: number, y: number, z: number): Matrix4 {
+let matrix4Rotate = (rad: number, x: number, y: number, z: number): Matrix4 => {
     let s_, c_, t_;
 
     s_ = Math.sin(rad);
@@ -145,7 +156,7 @@ function matrix4Rotate(rad: number, x: number, y: number, z: number): Matrix4 {
     ];
 }
 
-function matrix4Scale(x: number, y: number = x, z: number = y): Matrix4 {
+let matrix4Scale = (x: number, y: number = x, z: number = y): Matrix4 => {
     return [
         x, 0, 0, 0,
         0, y, 0, 0,
@@ -154,7 +165,7 @@ function matrix4Scale(x: number, y: number = x, z: number = y): Matrix4 {
     ];
 }
 
-function matrix4Translate(x: number, y: number, z: number): Matrix4 {
+let matrix4Translate = (x: number, y: number, z: number): Matrix4 => {
     return [
         1, 0, 0, 0,
         0, 1, 0, 0,
@@ -163,7 +174,7 @@ function matrix4Translate(x: number, y: number, z: number): Matrix4 {
     ];
 }
 
-function matrix4Transpose(m: Matrix4) {
+let matrix4Transpose = (m: Matrix4) => {
     return [
         m[0], m[4], m[8], m[12],
         m[1], m[5], m[9], m[13],

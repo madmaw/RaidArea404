@@ -23,23 +23,23 @@ function reversePose(pose: KeyFrame) {
 
 function makeWalkCycle(scale: number) {
   const walk1: KeyFrame = {
-    [PART_ID_LEFT_UPPER_LEG]: [0, Math.PI/15 * scale, 0],
-    [PART_ID_LEFT_LOWER_LEG]: [Math.PI/6 * scale, 0, 0],
-    [PART_ID_RIGHT_UPPER_LEG]: [0, -Math.PI/9 * scale, -Math.PI/24],
-    [PART_ID_TORSO]: [0, Math.PI/60 * scale * scale, -Math.PI/24 * scale],
-    [PART_ID_HEAD]: [0, 0, Math.PI/30 * scale],
-    [PART_ID_LEFT_LOWER_ARM]: [Math.PI/15 * scale * scale, 0, 0],
-    [PART_ID_RIGHT_LOWER_ARM]: [Math.PI/20 * scale * scale, 0, 0],
+    [PART_ID_LEFT_UPPER_LEG]: [0, CONST_PI_ON_15_2DP * scale, 0],
+    [PART_ID_LEFT_LOWER_LEG]: [CONST_PI_ON_6_1DP * scale, 0, 0],
+    [PART_ID_RIGHT_UPPER_LEG]: [0, -CONST_PI_ON_9_1DP * scale, -CONST_PI_ON_24_2DP],
+    [PART_ID_TORSO]: [0, CONST_PI_ON_60_2DP * scale * scale, -CONST_PI_ON_24_2DP * scale],
+    [PART_ID_HEAD]: [0, 0, CONST_PI_ON_30_2DP * scale],
+    [PART_ID_LEFT_LOWER_ARM]: [CONST_PI_ON_15_2DP * scale * scale, 0, 0],
+    [PART_ID_RIGHT_LOWER_ARM]: [CONST_PI_ON_20_2DP * scale * scale, 0, 0],
   }
   // return to defaults
   const walk2: KeyFrame = {
-    [PART_ID_LEFT_UPPER_LEG]: [0, -Math.PI/18 * scale, -Math.PI/24],
-    [PART_ID_LEFT_LOWER_LEG]: [Math.PI/4 * scale, 0, 0],
-    [PART_ID_TORSO]: [0, Math.PI/99 * scale, 0],
-    [PART_ID_LEFT_UPPER_ARM]: [0, -Math.PI/6 * scale, 0],
-    [PART_ID_LEFT_LOWER_ARM]: [Math.PI/9 * scale, 0, 0],
-    [PART_ID_RIGHT_UPPER_ARM]: [0, Math.PI/12 * scale, 0],
-    [PART_ID_RIGHT_LOWER_ARM]: [Math.PI/20 * scale * scale, 0, 0],
+    [PART_ID_LEFT_UPPER_LEG]: [0, -CONST_PI_ON_18_2DP * scale, -CONST_PI_ON_24_2DP],
+    [PART_ID_LEFT_LOWER_LEG]: [CONST_PI_ON_4_1DP * scale, 0, 0],
+    [PART_ID_TORSO]: [0, CONST_PI_ON_100_2DP * scale, 0],
+    [PART_ID_LEFT_UPPER_ARM]: [0, -CONST_PI_ON_6_1DP * scale, 0],
+    [PART_ID_LEFT_LOWER_ARM]: [CONST_PI_ON_9_1DP * scale, 0, 0],
+    [PART_ID_RIGHT_UPPER_ARM]: [0, CONST_PI_ON_12_2DP * scale, 0],
+    [PART_ID_RIGHT_LOWER_ARM]: [CONST_PI_ON_20_2DP * scale * scale, 0, 0],
   };
   const walk3 = reversePose(walk1);
   const walk4 = reversePose(walk2);
@@ -49,47 +49,47 @@ function makeWalkCycle(scale: number) {
 }
 
 const HUMAN_ACTIVATION_POSE: KeyFrame[] = [
+  // {
+  //   [PART_ID_LEFT_UPPER_ARM]: [0, -CONST_PI_ON_2_1DP, 0],
+  //   [PART_ID_LEFT_LOWER_ARM]: [CONST_PI_ON_5_1DP, 0, 0],
+  //   [PART_ID_TORSO]: [0, CONST_PI_ON_9_1DP, 0],
+  //   [PART_ID_HEAD]: [0, -CONST_PI_ON_9_1DP, 0],
+  //   [PART_ID_LEFT_UPPER_LEG]: [0, -CONST_PI_ON_9_1DP, -CONST_PI_ON_24_2DP],
+  //   [PART_ID_LEFT_LOWER_LEG]: [CONST_PI_ON_4_1DP, 0, 0],
+  //   [PART_ID_RIGHT_UPPER_LEG]: [0, -CONST_PI_ON_3_1DP, -CONST_PI_ON_24_2DP],
+  //   [PART_ID_RIGHT_LOWER_LEG]: [CONST_PI_ON_4_1DP, 0, 0],
+  // },
   {
-    [PART_ID_LEFT_UPPER_ARM]: [0, -Math.PI/2, 0],
-    [PART_ID_LEFT_LOWER_ARM]: [Math.PI/5, 0, 0],
-    [PART_ID_TORSO]: [0, Math.PI/9, 0],
-    [PART_ID_HEAD]: [0, -Math.PI/9, 0],
-    [PART_ID_LEFT_UPPER_LEG]: [0, -Math.PI/9, -Math.PI/24],
-    [PART_ID_LEFT_LOWER_LEG]: [Math.PI/4, 0, 0],
-    [PART_ID_RIGHT_UPPER_LEG]: [0, -Math.PI/3, -Math.PI/24],
-    [PART_ID_RIGHT_LOWER_LEG]: [Math.PI/4, 0, 0],
-  },
-  {
-    [PART_ID_LEFT_UPPER_ARM]: [0, -Math.PI/2, 0],
-    [PART_ID_LEFT_LOWER_ARM]: [Math.PI/8, 0, 0],
-    [PART_ID_TORSO]: [0, Math.PI/9, 0],
-    [PART_ID_HEAD]: [0, -Math.PI/9, 0],
-    [PART_ID_LEFT_UPPER_LEG]: [0, -Math.PI/9, -Math.PI/24],
-    [PART_ID_LEFT_LOWER_LEG]: [Math.PI/4, 0, 0],
-    [PART_ID_RIGHT_UPPER_LEG]: [0, -Math.PI/3, -Math.PI/24],
-    [PART_ID_RIGHT_LOWER_LEG]: [Math.PI/4, 0, 0],
+    [PART_ID_LEFT_UPPER_ARM]: [0, -CONST_PI_ON_2_1DP, 0],
+    [PART_ID_LEFT_LOWER_ARM]: [CONST_PI_ON_8_1DP, 0, 0],
+    [PART_ID_TORSO]: [0, CONST_PI_ON_9_1DP, 0],
+    [PART_ID_HEAD]: [0, -CONST_PI_ON_9_1DP, 0],
+    [PART_ID_LEFT_UPPER_LEG]: [0, -CONST_PI_ON_9_1DP, -CONST_PI_ON_24_2DP],
+    [PART_ID_LEFT_LOWER_LEG]: [CONST_PI_ON_4_1DP, 0, 0],
+    [PART_ID_RIGHT_UPPER_LEG]: [0, -CONST_PI_ON_3_1DP, -CONST_PI_ON_24_2DP],
+    [PART_ID_RIGHT_LOWER_LEG]: [CONST_PI_ON_4_1DP, 0, 0],
   },
 ];
 
 const HUMAN_CROUCH_POSE: KeyFrame[] = [
   {
-    [PART_ID_LEFT_UPPER_ARM]: [0, -Math.PI/8, 0],
-    [PART_ID_TORSO]: [0, Math.PI/6, 0],
-    [PART_ID_HEAD]: [0, -Math.PI/8, 0],
-    [PART_ID_LEFT_UPPER_LEG]: [0, -Math.PI*.65, 0],
-    [PART_ID_LEFT_LOWER_LEG]: [Math.PI*.6, 0, 0],
-    [PART_ID_RIGHT_LOWER_LEG]: [Math.PI*.6, 0, 0],
+    [PART_ID_LEFT_UPPER_ARM]: [0, -CONST_PI_ON_8_1DP, 0],
+    [PART_ID_TORSO]: [0, CONST_PI_ON_6_1DP, 0],
+    [PART_ID_HEAD]: [0, -CONST_PI_ON_8_1DP, 0],
+    [PART_ID_LEFT_UPPER_LEG]: [0, -CONST_PI_ON_1_5_1DP, 0],
+    [PART_ID_LEFT_LOWER_LEG]: [CONST_PI_ON_1_6_1DP, 0, 0],
+    [PART_ID_RIGHT_LOWER_LEG]: [CONST_PI_ON_1_6_1DP, 0, 0],
   }
 ];
 
 const chokingKeyFrame1: KeyFrame = {
-  [PART_ID_LEFT_UPPER_ARM]: [0, -Math.PI/2, 0],
-  [PART_ID_LEFT_LOWER_ARM]: [Math.PI/1.5, Math.PI/4, 0],
-  [PART_ID_RIGHT_UPPER_ARM]: [0, -Math.PI/1.5, 0],
-  [PART_ID_RIGHT_LOWER_ARM]: [Math.PI/1.5, Math.PI/6, 0],
-  [PART_ID_HEAD]: [Math.PI/9, 0, 0],
-  [PART_ID_RIGHT_LOWER_LEG]: [Math.PI/3, 0, 0],
-  [PART_ID_LEFT_LOWER_LEG]: [Math.PI/4, 0, 0],
+  [PART_ID_LEFT_UPPER_ARM]: [0, -CONST_PI_ON_2_1DP, 0],
+  [PART_ID_LEFT_LOWER_ARM]: [CONST_PI_ON_1_5_1DP, CONST_PI_ON_4_1DP, 0],
+  [PART_ID_RIGHT_UPPER_ARM]: [0, -CONST_PI_ON_1_5_1DP, 0],
+  [PART_ID_RIGHT_LOWER_ARM]: [CONST_PI_ON_1_5_1DP, CONST_PI_ON_6_1DP, 0],
+  [PART_ID_HEAD]: [CONST_PI_ON_9_1DP, 0, 0],
+  [PART_ID_RIGHT_LOWER_LEG]: [CONST_PI_ON_3_1DP, 0, 0],
+  [PART_ID_LEFT_LOWER_LEG]: [CONST_PI_ON_4_1DP, 0, 0],
 
 };
 const HUMAN_CHOKING_POSE: KeyFrame[] = [
@@ -98,10 +98,10 @@ const HUMAN_CHOKING_POSE: KeyFrame[] = [
 ];
 
 const chokerKeyFrame1: KeyFrame = {
-  [PART_ID_LEFT_UPPER_ARM]: [-Math.PI/9, -Math.PI/2.5, 0],
-  [PART_ID_LEFT_LOWER_ARM]: [Math.PI/6, Math.PI/9, Math.PI/9],
-  [PART_ID_RIGHT_UPPER_ARM]: [-Math.PI/4, -Math.PI/2.5, 0],
-  [PART_ID_RIGHT_LOWER_ARM]: [Math.PI/5, Math.PI/9, Math.PI/9],
+  [PART_ID_LEFT_UPPER_ARM]: [-CONST_PI_ON_9_1DP, -CONST_PI_ON_2_5_1DP, 0],
+  [PART_ID_LEFT_LOWER_ARM]: [CONST_PI_ON_6_1DP, CONST_PI_ON_9_1DP, CONST_PI_ON_9_1DP],
+  [PART_ID_RIGHT_UPPER_ARM]: [-CONST_PI_ON_4_1DP, -CONST_PI_ON_2_5_1DP, 0],
+  [PART_ID_RIGHT_LOWER_ARM]: [CONST_PI_ON_5_1DP, CONST_PI_ON_9_1DP, CONST_PI_ON_9_1DP],
   // [PART_ID_LEFT_UPPER_LEG]: [Math.PI/20, Math.PI/20, 0],
   // [PART_ID_RIGHT_UPPER_LEG]: [Math.PI/20, -Math.PI/20, 0],
   // [PART_ID_RIGHT_LOWER_LEG]: [-Math.PI/20, 0, 0],

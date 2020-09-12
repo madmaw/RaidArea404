@@ -34,14 +34,14 @@ const badgeDefinitions: ([number, number] | [number])[] = [
   [0x2022],
   // eye 3
   [0x1D54],
-  // painting
-  [0x1F5BC],
   // emoji faces
   [0x1F600, 69],
   // animals
-  [0x1F400, 66],
+  [0x1F400, 59],
   // food
   [0x1F332, 34],
+  // ghosts and shit
+  [0x1F479, 8],
 ];
 let badgeCount = 0;
 context.font = `${CONST_BADGE_DIMENSION}px system-ui`;
@@ -77,6 +77,8 @@ i.onload = () => {
   if (FLAG_DEBUG_MODELS) {
     const iAspectRatio = i.width/i.height;
     const windowAspectRatio = innerWidth/innerHeight;
+    let c = document.createElement('canvas');
+    document.body.appendChild(c);
     if (iAspectRatio > windowAspectRatio) {
       c.height = i.height = (i.height * innerWidth) / i.width;
       c.width = i.width = innerWidth;
@@ -105,14 +107,14 @@ i.onload = () => {
 
           modelFacePerimeters
               .sort((p1, p2) => {
-                const getAverageDepth = (p: PerimeterPoint[]) => p.reduce((c, p) => c + p.position[2], 0)/p.length;
+                const getAverageDepth = (p: PerimeterPoint[]) => p.reduce((c, p) => c + p.pos[2], 0)/p.length;
                 return getAverageDepth(p2) - getAverageDepth(p1);
               })
               .forEach(perimeter => {
                 context.beginPath();
                 let totalZ = 0;
                 let countZ = 0;
-                perimeter.forEach(({ position: [x, y, z], textureCoordinateOriginal }, i) => {
+                perimeter.forEach(({ pos: [x, y, z], textureCoordinateOriginal }, i) => {
                   if (i) {
                     context.lineTo(x, y);
                   } else {
@@ -148,7 +150,7 @@ i.onload = () => {
             if (perimeter && rect) {
               const [ox, oy, ow, oh] = rect;
               context.beginPath();
-              perimeter.forEach(({ position: [x, y], textureCoordinate: [tx, ty] }, i) => {
+              perimeter.forEach(({ pos: [x, y], textureCoordinate: [tx, ty] }, i) => {
                 context.save();
                 context.translate(ox + ow/2, oy + oh/2);
                 if (i) {
@@ -173,7 +175,7 @@ i.onload = () => {
               context.strokeStyle = '#0f0';
               const [ox, oy, ow, oh] = rect;
 
-              perimeter.forEach(({ position: [x, y], textureCoordinate: [tx, ty] }, i) => {
+              perimeter.forEach(({ pos: [x, y], textureCoordinate: [tx, ty] }, i) => {
                 context.beginPath();
                 context.moveTo(ox + ow/2 + x, oy + oh/2 + y);
                 context.lineTo(tx * imageWidth, ty * imageWidth);
@@ -249,71 +251,76 @@ i.onload = () => {
       alpha: false,
     });
 
-    const CONST_GL_RENDERBUFFER = FLAG_USE_GL_CONSTANTS?gl.RENDERBUFFER:0x8D41;
-    const CONST_GL_FRAMEBUFFER = FLAG_USE_GL_CONSTANTS?gl.FRAMEBUFFER:0x8D40;
-    const CONST_GL_DEPTH_COMPONENT16 = FLAG_USE_GL_CONSTANTS?gl.DEPTH_COMPONENT16:0x81A5;
-    const CONST_GL_DEPTH_ATTACHMENT = FLAG_USE_GL_CONSTANTS?gl.DEPTH_ATTACHMENT:0x8D00;
-    const CONST_GL_VERTEX_SHADER = FLAG_USE_GL_CONSTANTS?gl.VERTEX_SHADER:0x8B31;
-    const CONST_GL_FRAGMENT_SHADER = FLAG_USE_GL_CONSTANTS?gl.FRAGMENT_SHADER:0x8B30;
-    const CONST_GL_LINK_STATUS = FLAG_USE_GL_CONSTANTS?gl.LINK_STATUS:0x8B82;
-    const CONST_GL_ELEMENT_ARRAY_BUFFER = FLAG_USE_GL_CONSTANTS?gl.ELEMENT_ARRAY_BUFFER:0x8893;
-    const CONST_GL_COLOR_ATTACHMENT0 = FLAG_USE_GL_CONSTANTS?gl.COLOR_ATTACHMENT0:0x8CE0;
-    const CONST_GL_DEPTH_TEST = FLAG_USE_GL_CONSTANTS?gl.DEPTH_TEST:0x0B71;
-    const CONST_GL_CULL_FACE = FLAG_USE_GL_CONSTANTS?gl.CULL_FACE:0x0B44;
-    const CONST_GL_BLEND = FLAG_USE_GL_CONSTANTS?gl.BLEND:0x0BE2;
-    const CONST_GL_LESS = FLAG_USE_GL_CONSTANTS?gl.LESS:0x0201;
-    const CONST_GL_FRONT = FLAG_USE_GL_CONSTANTS?gl.FRONT:0x0404;
-    const CONST_GL_BACK = FLAG_USE_GL_CONSTANTS?gl.BACK:0x0405;
-    const CONST_GL_COLOR_BUFFER_BIT = FLAG_USE_GL_CONSTANTS?gl.COLOR_BUFFER_BIT:0x4000;
-    const CONST_GL_DEPTH_BUFFER_BIT = FLAG_USE_GL_CONSTANTS?gl.DEPTH_BUFFER_BIT:0x100;
-    const CONST_GL_COLOR_AND_DEPTH_BUFFER_BIT = FLAG_USE_GL_CONSTANTS?gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT:0x4100;
-    const CONST_GL_TEXTURE_2D = FLAG_USE_GL_CONSTANTS?gl.TEXTURE_2D:0x0DE1;
-    const CONST_GL_UNSIGNED_BYTE = FLAG_USE_GL_CONSTANTS?gl.UNSIGNED_BYTE:0x1401;
-    const CONST_GL_UNSIGNED_SHORT = FLAG_USE_GL_CONSTANTS?gl.UNSIGNED_SHORT:0x1403;
-    const CONST_GL_RGBA = FLAG_USE_GL_CONSTANTS?gl.RGBA:0x1908;
-    const CONST_GL_TRIANGLES = FLAG_USE_GL_CONSTANTS?gl.TRIANGLES:0x0004;
-    const CONST_GL_TEXTURE0 = FLAG_USE_GL_CONSTANTS?gl.TEXTURE0:0x84C0;
-    const CONST_GL_TEXTURE1 = FLAG_USE_GL_CONSTANTS?gl.TEXTURE1:0x84C1;
+  const CONST_GL_RENDERBUFFER = FLAG_USE_GL_CONSTANTS?gl.RENDERBUFFER:0x8D41;
+  const CONST_GL_FRAMEBUFFER = FLAG_USE_GL_CONSTANTS?gl.FRAMEBUFFER:0x8D40;
+  const CONST_GL_DEPTH_COMPONENT16 = FLAG_USE_GL_CONSTANTS?gl.DEPTH_COMPONENT16:0x81A5;
+  const CONST_GL_DEPTH_ATTACHMENT = FLAG_USE_GL_CONSTANTS?gl.DEPTH_ATTACHMENT:0x8D00;
+  const CONST_GL_FRAGMENT_SHADER = FLAG_USE_GL_CONSTANTS?gl.FRAGMENT_SHADER:0x8B30;
+  const CONST_GL_ELEMENT_ARRAY_BUFFER = FLAG_USE_GL_CONSTANTS?gl.ELEMENT_ARRAY_BUFFER:0x8893;
+  const CONST_GL_COLOR_ATTACHMENT0 = FLAG_USE_GL_CONSTANTS?gl.COLOR_ATTACHMENT0:0x8CE0;
+  const CONST_GL_DEPTH_TEST = FLAG_USE_GL_CONSTANTS?gl.DEPTH_TEST:0x0B71;
+  const CONST_GL_CULL_FACE = FLAG_USE_GL_CONSTANTS?gl.CULL_FACE:0x0B44;
+  const CONST_GL_BLEND = FLAG_USE_GL_CONSTANTS?gl.BLEND:0x0BE2;
+  const CONST_GL_LESS = FLAG_USE_GL_CONSTANTS?gl.LESS:0x0201;
+  const CONST_GL_FRONT = FLAG_USE_GL_CONSTANTS?gl.FRONT:0x0404;
+  const CONST_GL_BACK = FLAG_USE_GL_CONSTANTS?gl.BACK:0x0405;
+  const CONST_GL_COLOR_BUFFER_BIT = FLAG_USE_GL_CONSTANTS?gl.COLOR_BUFFER_BIT:0x4000;
+  const CONST_GL_DEPTH_BUFFER_BIT = FLAG_USE_GL_CONSTANTS?gl.DEPTH_BUFFER_BIT:0x100;
+  const CONST_GL_COLOR_AND_DEPTH_BUFFER_BIT = FLAG_USE_GL_CONSTANTS?gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT:0x4100;
+  const CONST_GL_TEXTURE_2D = FLAG_USE_GL_CONSTANTS?gl.TEXTURE_2D:0x0DE1;
+  const CONST_GL_UNSIGNED_BYTE = FLAG_USE_GL_CONSTANTS?gl.UNSIGNED_BYTE:0x1401;
+  const CONST_GL_UNSIGNED_SHORT = FLAG_USE_GL_CONSTANTS?gl.UNSIGNED_SHORT:0x1403;
+  const CONST_GL_RGBA = FLAG_USE_GL_CONSTANTS?gl.RGBA:0x1908;
+  const CONST_GL_TRIANGLES = FLAG_USE_GL_CONSTANTS?gl.TRIANGLES:0x0004;
+  const CONST_GL_TEXTURE0 = FLAG_USE_GL_CONSTANTS?gl.TEXTURE0:0x84C0;
+  const CONST_GL_TEXTURE1 = FLAG_USE_GL_CONSTANTS?gl.TEXTURE1:0x84C1;
+  const CONST_GL_TEXTURE2 = FLAG_USE_GL_CONSTANTS?gl.TEXTURE2:0x84C2;
+  const CONST_GL_ARRAY_BUFFER = FLAG_USE_GL_CONSTANTS ? gl.ARRAY_BUFFER : 0x8892;
+  const CONST_GL_TEXTURE_MAG_FILTER = FLAG_USE_GL_CONSTANTS ? gl.TEXTURE_MAG_FILTER : 10240;
+  const CONST_GL_NEAREST = FLAG_USE_GL_CONSTANTS ? gl.NEAREST : 9728;
+  const CONST_GL_TEXTURE_MIN_FILTER = FLAG_USE_GL_CONSTANTS ? gl.TEXTURE_MIN_FILTER : 10241;
+  const CONST_GL_SRC_ALPHA = FLAG_USE_GL_CONSTANTS ? gl.SRC_ALPHA : 770;
+  const CONST_GL_ONE_MINUS_SRC_ALPHA = FLAG_USE_GL_CONSTANTS ? gl.ONE_MINUS_SRC_ALPHA : 771;
 
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.blendFunc(CONST_GL_SRC_ALPHA, CONST_GL_ONE_MINUS_SRC_ALPHA);
 
   const lightingTexture = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+  gl.bindTexture(CONST_GL_TEXTURE_2D, lightingTexture);
+  gl.texImage2D(CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION, 0, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, null);
 
   const lightingFrameBuffer = gl.createFramebuffer();
 
   const lightingDepthBuffer = gl.createRenderbuffer();
   gl.bindRenderbuffer(CONST_GL_RENDERBUFFER, lightingDepthBuffer);
-  gl.renderbufferStorage(CONST_GL_RENDERBUFFER, gl.DEPTH_COMPONENT16, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
+  gl.renderbufferStorage(CONST_GL_RENDERBUFFER, CONST_GL_DEPTH_COMPONENT16, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
 
   mainProgramInputs = initMainProgram(gl, modelsFaces);
 
   const modelTexture = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, modelTexture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, i);
+  gl.activeTexture(CONST_GL_TEXTURE0);
+  gl.bindTexture(CONST_GL_TEXTURE_2D, modelTexture);
+  gl.texImage2D(CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, i);
   if (FLAG_SQUARE_IMAGE) {
-    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.generateMipmap(CONST_GL_TEXTURE_2D);
   } else {
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   }
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(CONST_GL_TEXTURE_2D, CONST_GL_TEXTURE_MAG_FILTER, CONST_GL_NEAREST);
   gl.uniform1i(mainProgramInputs.uniforms[U_MODEL_TEXTURE_INDEX], 0);
 
   const badgeTexture = gl.createTexture();
-  gl.activeTexture(gl.TEXTURE2);
-  gl.bindTexture(gl.TEXTURE_2D, badgeTexture);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, d);
+  gl.activeTexture(CONST_GL_TEXTURE2);
+  gl.bindTexture(CONST_GL_TEXTURE_2D, badgeTexture);
+  gl.texImage2D(CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, d);
   if (FLAG_SQUARE_IMAGE) {
-    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.generateMipmap(CONST_GL_TEXTURE_2D);
   } else {
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   }
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(CONST_GL_TEXTURE_2D, CONST_GL_TEXTURE_MIN_FILTER, CONST_GL_NEAREST);
   gl.uniform1i(mainProgramInputs.uniforms[U_BADGE_TEXTURE_INDEX], 2);
 
   let shadowGL: WebGLRenderingContext;
@@ -369,7 +376,7 @@ i.onload = () => {
 
     if (lights || !FLAG_AVOID_GL_WARNINGS) {
       const paddedLights = new Array(CONST_MAX_LIGHTS).fill(0).map<{
-        position: Vector3,
+        pos: Vector3,
         lightProjection?: Matrix4,
         lightIntensity?: number,
       }>((_, i) => {
@@ -379,12 +386,12 @@ i.onload = () => {
             : {
               lightIntensity: 0,
               lightProjection: matrix4Identity(),
-              position: [0, 0, 0],
+              pos: [0, 0, 0],
             };
       });
       gl.uniform4fv(
         uniforms[U_LIGHT_POSITIONS_INDEX],
-        paddedLights.flatMap(light => light.position.concat(light.lightIntensity)),
+        paddedLights.flatMap(light => light.pos.concat(light.lightIntensity)),
       );
       gl.uniformMatrix4fv(
         uniforms[U_LIGHT_PROJECTIONS_INDEX],
@@ -392,19 +399,19 @@ i.onload = () => {
         paddedLights.flatMap(light =>
           matrix4Multiply(
             light.lightProjection,
-            matrix4Translate(...(light.position.map(v => -v) as Vector3))
+            matrix4Translate(...(light.pos.map(v => -v) as Vector3))
           )
         ),
       );
     }
 
     if (FLAG_CULL_FACES) {
-      gl.enable(gl.CULL_FACE);
+      gl.enable(CONST_GL_CULL_FACE);
     }
 
     const invisibleEntities: Entity[] = [];
     iterateEntities(world, rooms, (entity: Entity) => {
-      const entityCenterPosition = [...entity.position.slice(0, 2), entity.position[2]+entity.depth/2] as Vector3;
+      const entityCenterPosition = [...entity.pos.slice(0, 2), entity.pos[2]+entity.depthZ/2] as Vector3;
       // don't think this works perfectly because
       // 1. the sphere is not sperical in perspective projection
       // 2. differences in fov between vertical and horizontal
@@ -426,7 +433,7 @@ i.onload = () => {
       //   matrix4Rotate(Math.atan2(normal[1], normal[0]), 0, 0, 1),
       //   matrix4Rotate(Math.atan2(normal[2], vectorNLength(normal.slice(0, 2))), 0, 1, 0),
       // ]);
-      const screenPosition = vector3TransformMatrix4(screenProjection, ...entity.position);
+      const screenPosition = vector3TransformMatrix4(screenProjection, ...entity.pos);
       const screenLength = vectorNLength(screenPosition.slice(0, 2));
 
       if (screenPosition[2] > -entity.renderRadius
@@ -438,7 +445,7 @@ i.onload = () => {
         if (!entity.invisible || !lights) {
           // render
           const transform = matrix4MultiplyStack([
-            matrix4Translate(...entity.position),
+            matrix4Translate(...entity.pos),
             matrix4Rotate(-entity.zRotation, 0, 0, 1),
             matrix4Scale(1, 1, entity.scaleZ || 1),
           ]);
@@ -459,7 +466,7 @@ i.onload = () => {
     });
 
     if (lights) {
-      gl.enable(gl.BLEND);
+      gl.enable(CONST_GL_BLEND);
       gl.depthMask(false);
       // if (FLAG_CULL_FACES) {
       //   gl.disable(gl.CULL_FACE);
@@ -467,9 +474,12 @@ i.onload = () => {
       // lights are already ordered nearest to furthest
       // const closestLightPosition = lights[0].position.slice(0, 2);
       // const lightCameraNormal = vectorNSubtract(closestLightPosition, cameraPosition);
-      invisibleEntities.map(entity => {
+      invisibleEntities
+        // because depth testing is off for these, they don't interact well
+        .sort((e1, e2) => vectorNLength(vectorNSubtract(e2.pos, cameraPosition)) - vectorNLength(vectorNSubtract(e1.pos, cameraPosition)))
+        .map(entity => {
         const transform = matrix4MultiplyStack([
-          matrix4Translate(...entity.position),
+          matrix4Translate(...entity.pos),
           matrix4Rotate(-entity.zRotation, 0, 0, 1),
           matrix4Scale(1, 1, entity.scaleZ || 1),
         ]);
@@ -489,7 +499,7 @@ i.onload = () => {
           renderBackFaces
         );
       });
-      gl.disable(gl.BLEND);
+      gl.disable(CONST_GL_BLEND);
       gl.depthMask(true);
     }
   }
@@ -505,7 +515,7 @@ i.onload = () => {
     renderBackFaces?: boolean | number,
   ) => {
     const {
-      attributes,
+      attribs: attributes,
       uniforms,
       modelBuffers,
     } = inputs;
@@ -520,9 +530,9 @@ i.onload = () => {
     if (FLAG_CULL_FACES) {
       renderBackFaces = renderBackFaces && !part.flipY || !renderBackFaces && part.flipY;
       if (renderBackFaces) {
-        gl.cullFace(gl.FRONT);
+        gl.cullFace(CONST_GL_FRONT);
       } else {
-        gl.cullFace(gl.BACK);
+        gl.cullFace(CONST_GL_BACK);
       }
     }
 
@@ -541,7 +551,7 @@ i.onload = () => {
     } = modelBuffers[part.modelId];
 
     // positions
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bindBuffer(CONST_GL_ARRAY_BUFFER, vertexBuffer);
     gl.vertexAttribPointer(
       attributes[A_VERTEX_POSITION_INDEX],
       3,
@@ -553,7 +563,7 @@ i.onload = () => {
     gl.enableVertexAttribArray(attributes[A_VERTEX_POSITION_INDEX]);
 
     // texture coordinates
-    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordinateBuffer);
+    gl.bindBuffer(CONST_GL_ARRAY_BUFFER, textureCoordinateBuffer);
     gl.vertexAttribPointer(
       attributes[A_TEXTURE_COORDINATE_INDEX],
       2,
@@ -565,7 +575,7 @@ i.onload = () => {
     gl.enableVertexAttribArray(attributes[A_TEXTURE_COORDINATE_INDEX]);
 
     // normals
-    gl.bindBuffer(gl.ARRAY_BUFFER, surfaceNormalBuffer);
+    gl.bindBuffer(CONST_GL_ARRAY_BUFFER, surfaceNormalBuffer);
     gl.vertexAttribPointer(
       attributes[A_SURFACE_NORMAL_INDEX],
       3,
@@ -590,11 +600,11 @@ i.onload = () => {
     );
 
     // indices
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bindBuffer(CONST_GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
 
-    gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(CONST_GL_TRIANGLES, indexCount, CONST_GL_UNSIGNED_SHORT, 0);
     // closure compiler doesn't like part.children?.map
-    part.children && part.children.map(child => {
+    part.childParts && part.childParts.map(child => {
       bodyPartRenderer(gl, inputs, child, m, partTransforms, partBadges, palette, renderBackFaces);
     });
 
@@ -617,9 +627,15 @@ i.onload = () => {
     rooms,
     tiles,
     switches: [],
+    alwaysUpdates: [],
     activatedCircuits: {
-      9: -9999,
-      1: -9999,
+      0: 1,
+      1: 1,
+      2: 1,
+      3: 1,
+      4: 1,
+      5: 1,
+      9: 1,
     },
   };
 
@@ -628,8 +644,8 @@ i.onload = () => {
       const room = rooms[rx][ry];
       room.ambientLight = definition.ambientLight || 0;
       room.adjoiningRooms = definition.adjoiningRooms || 0;
-      const legend = {...globalLegend, ...definition.legend || {}};
-      const floorAndCeilingFactory = definition.floorAndCeilingFactory || globalFloorAndCeilingFactory;
+      const legend = globalLegend;
+      const floorAndCeilingFactory = globalFloorAndCeilingFactory;
       definition.layout.split('').map((c, i) => {
         const x = rx * CONST_ROOM_DIMENSION + i % CONST_ROOM_DIMENSION+.5;
         const y = ry * CONST_ROOM_DIMENSION + (i / CONST_ROOM_DIMENSION | 0) + .5;
@@ -682,10 +698,10 @@ i.onload = () => {
     const room = world.rooms[rx][ry];
     const cameraPosition = room.cameraPosition;
     const cameraTanFOVOn2 = room.cameraTanFOVOn2 || CONST_DEFAULT_TAN_FOV_ON_2;
-    const cameraDelta = vectorNSubtract(world.player.position, cameraPosition);
+    const cameraDelta = vectorNSubtract(world.player.pos, cameraPosition);
     const cameraZRotation = Math.atan2(cameraDelta[1], cameraDelta[0]);
     const cameraDistance = vectorNLength(cameraDelta.slice(0, 2).concat(0));
-    const cameraYRotation = Math.atan2(cameraDistance, -cameraDelta[2] - world.player.depth);
+    const cameraYRotation = Math.atan2(cameraDistance, -cameraDelta[2] - world.player.depthZ);
     //const cameraXRotation = Math.PI/2;
 
     const aspect = g.width / g.height;
@@ -693,8 +709,9 @@ i.onload = () => {
     const zFar = 99;
     const cameraProjection = matrix4MultiplyStack([
       //matrix4Perspective(Math.tan(fieldOfView)/2, aspect, zNear, zFar),
-      matrix4Perspective(cameraTanFOVOn2, aspect, zNear, zFar),
-      matrix4Rotate(-Math.PI/2, 0, 0, 1),
+      //matrix4Perspective(cameraTanFOVOn2, aspect, zNear, zFar),
+      matrix4InfinitePerspective(cameraTanFOVOn2, aspect, zNear),
+      matrix4Rotate(-CONST_PI_ON_2_1DP, 0, 0, 1),
       matrix4Rotate(cameraYRotation, 0, 1, 0),
       matrix4Rotate(cameraZRotation, 0, 0, 1),
     ]);
@@ -704,43 +721,43 @@ i.onload = () => {
     const litEntities = (engineState.litEntities || [])
         .filter(e => e.lightIntensity)
         .sort((l1, l2) => {
-          const d1 = vectorNLength(vectorNSubtract(cameraPosition, l1.position as any as Vector3));
-          const d2 = vectorNLength(vectorNSubtract(cameraPosition, l2.position as any as Vector3));
+          const d1 = vectorNLength(vectorNSubtract(cameraPosition, l1.pos as any as Vector3));
+          const d2 = vectorNLength(vectorNSubtract(cameraPosition, l2.pos as any as Vector3));
           return d1 - d2;
         })
         .slice(0, CONST_MAX_LIGHTS);
 
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
+    gl.activeTexture(CONST_GL_TEXTURE1);
+    gl.bindTexture(CONST_GL_TEXTURE_2D, lightingTexture);
 
     if(FLAG_CANVAS_LIGHTING) {
-      shadowGL.enable(gl.DEPTH_TEST);
-      shadowGL.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      shadowGL.enable(CONST_GL_DEPTH_TEST);
+      shadowGL.clear(CONST_GL_COLOR_AND_DEPTH_BUFFER_BIT);
     } else {
 
       gl.bindFramebuffer(CONST_GL_FRAMEBUFFER, lightingFrameBuffer);
-      gl.framebufferTexture2D(CONST_GL_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, lightingTexture, 0);
+      gl.framebufferTexture2D(CONST_GL_FRAMEBUFFER, CONST_GL_COLOR_ATTACHMENT0, CONST_GL_TEXTURE_2D, lightingTexture, 0);
 
       gl.bindRenderbuffer(CONST_GL_RENDERBUFFER, lightingDepthBuffer);
-      gl.framebufferRenderbuffer(CONST_GL_FRAMEBUFFER, gl.DEPTH_ATTACHMENT, CONST_GL_RENDERBUFFER, lightingDepthBuffer);
+      gl.framebufferRenderbuffer(CONST_GL_FRAMEBUFFER, CONST_GL_DEPTH_ATTACHMENT, CONST_GL_RENDERBUFFER, lightingDepthBuffer);
 
-      gl.enable(gl.DEPTH_TEST);
-      gl.disable(gl.BLEND);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.enable(CONST_GL_DEPTH_TEST);
+      gl.disable(CONST_GL_BLEND);
+      gl.clear(CONST_GL_COLOR_AND_DEPTH_BUFFER_BIT);
 
       // put something else in the active texture (texture1) so we don't attempt to read and write to the same texture
-      gl.bindTexture(gl.TEXTURE_2D, modelTexture);
+      gl.bindTexture(CONST_GL_TEXTURE_2D, modelTexture);
     }
 
     litEntities.map((litEntity, i) => {
-      const rx = (litEntity.position[0] / CONST_ROOM_DIMENSION) | 0;
-      const ry = (litEntity.position[1] / CONST_ROOM_DIMENSION) | 0;
+      const rx = (litEntity.pos[0] / CONST_ROOM_DIMENSION) | 0;
+      const ry = (litEntity.pos[1] / CONST_ROOM_DIMENSION) | 0;
       // only light what we can see
       const intersectingRooms = getAdjoiningRooms(world, rx, ry)
-          .filter(p1 => (p1[0] == room.rx || p1[1] == room.ry) && adjoiningRooms.some(p2 => p1[0] == p2[0] && p1[1] == p1[1]));
+          .filter(p1 => /*(p1[0] == room.rx || p1[1] == room.ry) &&*/ adjoiningRooms.some(p2 => p1[0] == p2[0] && p1[1] == p1[1]));
       const lightDistance = CONST_MAX_LIGHT_DISTANCE;
       // do not create a shadow from ourself!
-      const shadowFilter = (e: Entity) => e != litEntity;
+      const shadowFilter = (e: Entity) => e != litEntity && !(e.invisible < 0);
 
       if (FLAG_CANVAS_LIGHTING) {
         shadowGL.viewport(
@@ -755,7 +772,7 @@ i.onload = () => {
           shadowProgramInputs,
           world,
           intersectingRooms,
-          litEntity.position,
+          litEntity.pos,
           matrix4Multiply(matrix4Scale(1, -1, 1), litEntity.lightProjection),
           litEntity.lightTanFOVOn2 || CONST_DEFAULT_TAN_FOV_ON_2,
           lightDistance,
@@ -778,7 +795,7 @@ i.onload = () => {
           mainProgramInputs,
           world,
           intersectingRooms,
-          litEntity.position,
+          litEntity.pos,
           litEntity.lightProjection,
           litEntity.lightTanFOVOn2 || CONST_DEFAULT_TAN_FOV_ON_2,
           lightDistance,
@@ -795,37 +812,39 @@ i.onload = () => {
       1,
     );
     if (FLAG_CANVAS_LIGHTING) {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, l);
+      gl.texImage2D(CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, l);
       if (FLAG_SQUARE_IMAGE) {
         // should always be square
-        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.generateMipmap(CONST_GL_TEXTURE_2D);
       } else {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       }
     } else {
-      gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
+      gl.bindTexture(CONST_GL_TEXTURE_2D, lightingTexture);
       if (FLAG_SQUARE_IMAGE) {
         // should always be square
-        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.generateMipmap(CONST_GL_TEXTURE_2D);
       } else {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       }
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(CONST_GL_TEXTURE_2D, CONST_GL_TEXTURE_MAG_FILTER, CONST_GL_NEAREST);
 
       // gl.activeTexture(gl.TEXTURE0);
       // gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
 
       // switch back to rendering to canvas
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.bindFramebuffer(CONST_GL_FRAMEBUFFER, null);
       gl.viewport(0, 0, g.width, g.height);
     }
 
-    gl.enable(gl.DEPTH_TEST);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(CONST_GL_DEPTH_TEST);
+    gl.clear(CONST_GL_COLOR_AND_DEPTH_BUFFER_BIT);
+
+    const deadness = Math.pow((world.player.deadness || 0)/CONST_MAX_DEADNESS, 3);
 
     renderer(
       gl,
@@ -836,12 +855,12 @@ i.onload = () => {
       cameraProjection,
       cameraTanFOVOn2,
       CONST_MAX_VIEW_DISTANCE,
-      room.ambientLight,
-      4*Math.pow((world.player.deadness || 0)/CONST_MAX_DEADNESS, 2),
+      room.ambientLight - deadness * 3,
+      4*Math.abs(deadness),
       litEntities,
     );
 
-    gl.bindTexture(gl.TEXTURE_2D, modelTexture);
+    gl.bindTexture(CONST_GL_TEXTURE_2D, modelTexture);
 
   };
   update(0);

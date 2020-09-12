@@ -6,6 +6,7 @@ type World = {
   player?: PlayerEntity,
   monster?: MonsterEntity,
   switches: SwitchEntity[],
+  alwaysUpdates: Entity[],
   activatedCircuits: {[_: number]: number },
 };
 
@@ -71,14 +72,14 @@ type CollisionType = -1 | 0 | 1 | 2;
 
 type BaseEntity = {
   id: number,
-  position: Vector3,
+  pos: Vector3,
   velocity: Vector3,
   scaleZ?: number,
   collisionRadius: number,
   renderRadius: number,
   palette: Vector4[],
   perimeter?: Vector2[] | 0,
-  depth: number,
+  depthZ: number,
   zRotation: number,
   collisionType?: CollisionType,
   body: BodyPart,
@@ -87,12 +88,13 @@ type BaseEntity = {
   activeAnimations?: ActiveAnim[],
   animations?: {[_: number]: Anim },
   partTransforms?: {[_: number]: Matrix4},
-  invisible?: number | boolean,
+  invisible?: 1 | 0 | -1, // -1 no shadow, 0 not invisible, 1 invisible with shadow
   badges?: {[_: number]: Vector4[] },
   lightProjection?: Matrix4 | undefined,
   lightTanFOVOn2?: number,
   lightIntensity?: number,
   zPositionRange?: Vector2,
+  lastCollision?: number,
 };
 
 type InertEntity = {
@@ -107,9 +109,8 @@ type PlayerEntity = {
 
 type MonsterEntity = {
   intelligence: 2, // monster
-  path?: Vector2[],
-  active?: boolean | 1 | 0,
-  anger?: -1 | 0 | 1,
+  steps?: Vector2[],
+  anger: -1 | 0 | 1,
   waitDuration?: number,
   lastDetectedPlayer?: Vector3,
 } & BaseEntity;
@@ -128,12 +129,13 @@ type LightEntity = {
 type SwitchEntity = {
   intelligence: 5, // switch
   circuit?: number,
-  playerHasInteractedWith?: boolean | 0 | 1,
 } & BaseEntity;
 
 type DoorEntity = {
   intelligence: 6, // door
   circuit?: number,
+  // close when open
+  reversed?: boolean | number,
 } & BaseEntity;
 
 type Entity = InertEntity | PlayerEntity | MonsterEntity | LightEntity | SwitchEntity | DoorEntity;
@@ -143,7 +145,7 @@ type BodyPart = {
   attachmentTransform: Matrix4,
   id?: number,
   modelId: number,
-  children?: BodyPart[],
+  childParts?: BodyPart[],
   paletteIndices?: number[],
   flipY?: boolean | number,
 }
@@ -164,7 +166,7 @@ type KeyFrame = {[_: number]: Vector3};
 type LastActiveRotation = {
   actionId: number,
   originRotation: Vector3,
-  rotation: Vector3,
+  angles: Vector3,
   lastAnimatedTime: number,
   lastAnimatedFrameDuration: number,
   lastAnimatedRotation: Vector3,
@@ -175,12 +177,12 @@ type Anim = {
   frameDuration: number,
   repeating?: boolean | number,
   sound?: SoundEffect3D,
-  soundLoopTime?: number,
+  soundLoopDuration?: number,
 }
 
 type ActiveAnim = {
   actionId: number,
-  startTime: number,
-  renewalTime?: number,
+  startWorldAge: number,
+  renewalWorldAge?: number,
   onComplete?: () => void,
 }

@@ -1,45 +1,12 @@
 body {
   margin: 0;
   padding: 0;
-  background: #000;
-  overflow: hidden;
 }
 
-#c, #o, #i, #g, #d {
+canvas {
   position: absolute;
   top: 0;
   left: 0;
-  bottom: 0;
-  right: 0;
-  margin: auto;
-  box-sizing: border-box;
-}
-
-#g {
   width: 100%;
   height: 100%;
-  image-rendering: optimizeQuality;
-}
-
-#i {
-  image-rendering: pixelated;
-}
-
-#o {
-  color: #fff;
-  background: rgba(0, 0, 0, .5);
-  opacity: 0;
-  transition: opacity .5s;
-  text-align: center;
-  font: 9vh fantasy;
-  padding-top: 40vh;
-}
-
-#l {
-  position: absolute;
-  width: 400px;
-  height: 400px;
-  top: 0;
-  left: 0;
-
 }

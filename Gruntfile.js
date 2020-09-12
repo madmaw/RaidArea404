@@ -10,7 +10,7 @@ module.exports = function (grunt) {
       },
       watch: {
           default: {
-              files: ["src/ts/**/*", "src/d.ts/**/*", "index.htm", "index.css", "i.bmp"],
+              files: ["src/ts/**/*", "src/d.ts/**/*", "index.html", "index.css", "i.bmp"],
               tasks: ['ts:default'],
               options: {
                   livereload: true
@@ -72,19 +72,19 @@ module.exports = function (grunt) {
             collapseWhitespace: true
           },
           files: {
-            'dist/index.htm': 'dist/index.htm'
+            'dist/index.html': 'dist/index.html'
           }
         }
       },
       inline: {
           dist: {
-              src: 'dist/index.htm',
-              dest: 'dist/index.htm'
+              src: 'dist/index.html',
+              dest: 'dist/index.html'
           }
       },
       replace: {
           html: {
-              src: ['dist/index.htm'],
+              src: ['dist/index.html'],
               overwrite: true,
               replacements: [{
                   from: /build\/out\.js/g,
@@ -128,7 +128,7 @@ module.exports = function (grunt) {
           html: {
               files: [
                   {expand: true, src: ['i.bmp'], dest: 'dist/'},
-                  {expand: true, src: ['index.htm'], dest: 'dist/'},
+                  {expand: true, src: ['index.html'], dest: 'dist/'},
                   {expand: true, src: ['index.css'], dest: 'dist/'}
               ]
           }
