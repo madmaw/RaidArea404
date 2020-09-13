@@ -24,11 +24,11 @@ const HUMAN_BODY: BodyPart = {
     matrix4Rotate(CONST_PI_ON_30_2DP, 0, 1, 0),
     matrix4Translate(0, 0, 3.5),
   ]),
-  //badges: [[2, Math.PI, 1.5, 131]],
+  //badges: [[2, mathPI, 1.5, 131]],
   // badges: [
-  //   [1, Math.PI, 1, 3],
-  //   [1, Math.PI*.8, 1, 7],
-  //   [1, -Math.PI*.8, 1, 7]
+  //   [1, mathPI, 1, 3],
+  //   [1, mathPI*.8, 1, 7],
+  //   [1, -mathPI*.8, 1, 7]
   // ],
   modelId: MODEL_ID_TORSO,
   childParts: [
@@ -41,9 +41,9 @@ const HUMAN_BODY: BodyPart = {
       //   // mouth
       //   [1, 0, -.8, 0],
       //   // left eye
-      //   [-1, -Math.PI/7, 1.4, 1],
+      //   [-1, -mathPI/7, 1.4, 1],
       //   // right eye
-      //   [1, Math.PI/7, 1.4, 1],
+      //   [1, mathPI/7, 1.4, 1],
       // ],
       attachmentTransform: matrix4MultiplyStack([
         matrix4Rotate(-CONST_PI_ON_30_2DP, 0, 1, 0),
@@ -58,10 +58,10 @@ const HUMAN_BODY: BodyPart = {
       paletteIndices: [4, 4, 6, 6],
       attachmentTransform: matrix4MultiplyStack([
         // matrix4Translate(0, 5, 1),
-        // matrix4Rotate(0, 0, 1, Math.PI/2),
+        // matrix4Rotate(0, 0, 1, mathPI/2),
         //
-        //matrix4Rotate(0, 1, 0, -Math.PI/5),
-        //matrix4Rotate(1, 0, 0, -Math.PI/2),
+        //matrix4Rotate(0, 1, 0, -mathPI/5),
+        //matrix4Rotate(1, 0, 0, -mathPI/2),
         matrix4Scale(.8),
         matrix4Rotate(-CONST_PI_ON_50_2DP, 1, 0, 0),
         matrix4Rotate(CONST_PI_ON_20_2DP, 0, 1, 0),
@@ -90,14 +90,14 @@ const HUMAN_BODY: BodyPart = {
       paletteIndices: [4, 4, 6, 6],
       attachmentTransform: matrix4MultiplyStack([
         // matrix4Translate(0, 5, 1),
-         //matrix4Rotate(0, 1, 0, Math.PI/4),
+         //matrix4Rotate(0, 1, 0, mathPI/4),
         //
-        //matrix4Rotate(1, 0, 0, Math.PI/5),
+        //matrix4Rotate(1, 0, 0, mathPI/5),
         matrix4Scale(.8),
         matrix4Rotate(-CONST_PI_ON_50_2DP, 1, 0, 0),
         matrix4Rotate(CONST_PI_ON_20_2DP, 0, 1, 0),
         matrix4Translate(0, 0, -2),
-        //matrix4Rotate(0, 0, 1, Math.PI),
+        //matrix4Rotate(0, 0, 1, mathPI),
         matrix4Rotate(-CONST_PI_ON_2_1DP, 0, 0, 1),
       ]),
       childParts: [
@@ -108,7 +108,7 @@ const HUMAN_BODY: BodyPart = {
           paletteIndices: [6, 1, 1],
           attachmentTransform: matrix4MultiplyStack([
             matrix4Rotate(CONST_PI_ON_6_1DP, 1, 0, 0),
-            //matrix4Rotate(Math.PI/9, 0, 1, 0),
+            //matrix4Rotate(mathPI/9, 0, 1, 0),
             matrix4Rotate(CONST_PI_ON_9_1DP, 0, 0, 1),
             matrix4Translate(1, -.5, -2.8),
           ]),

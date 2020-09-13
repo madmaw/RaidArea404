@@ -1,48 +1,19 @@
-//
-// Initialize a shader program, so WebGL knows how to draw our data
-//
-function initShaderProgram(gl, vsSource, fsSource) {
-  const CONST_GL_VERTEX_SHADER = FLAG_USE_GL_CONSTANTS?gl.VERTEX_SHADER:0x8B31;
-  const CONST_GL_LINK_STATUS = FLAG_USE_GL_CONSTANTS?gl.LINK_STATUS:0x8B82;
-
-
-  const vertexShader = loadShader(gl, CONST_GL_VERTEX_SHADER, vsSource);
-  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
-
-  // Create the shader program
-
-  const shaderProgram = gl.createProgram();
-  gl.attachShader(shaderProgram, vertexShader);
-  gl.attachShader(shaderProgram, fragmentShader);
-  gl.linkProgram(shaderProgram);
-
-  // If creating the shader program failed, alert
-
-  if (FLAG_SHOW_GL_ERRORS && !gl.getProgramParameter(shaderProgram, CONST_GL_LINK_STATUS)) {
-    console.error('Unable to initialize the shader program: ', gl.getProgramInfoLog(shaderProgram));
-    console.log(vsSource);
-    console.log(fsSource);
-    return null;
-  }
-
-  return shaderProgram;
-}
 
 //
 // creates a shader of the given type, uploads the source and
 // compiles it.
 //
-function loadShader(gl, type, source) {
+const loadShader = (gl: ExtendedWebGLRenderingContext, type: number, source: string) => {
 
-  const shader = gl.createShader(type);
+  const shader = gl['crShr'](type);
 
   // Send the source to the shader object
 
-  gl.shaderSource(shader, source);
+  gl['shSoe'](shader, source);
 
   // Compile the shader program
 
-  gl.compileShader(shader);
+  gl['coShr'](shader);
 
   // See if it compiled successfully
 

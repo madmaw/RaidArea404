@@ -35,18 +35,18 @@ const FACE_SIDE_ROTATIONS: {
   // right side
   {
     fac: FACE_RIGHT,
-    rot: -Math.PI/2,
+    rot: -mathPI/2,
   },
   // top side
   {
     fac: FACE_BACK,
-    rot: Math.PI,
+    rot: mathPI,
   },
   /*
   // left side
   {
     face: FACE_LEFT,
-    rotation: Math.PI/2,
+    rotation: mathPI/2,
   },
   // bottom side
   {
@@ -90,7 +90,7 @@ const FACE_SIDE_ROTATIONS: {
   // top side
   {
     fac: FACE_TOP,
-    rot: -Math.PI/2,
+    rot: -mathPI/2,
   },
   /*
   // left side
@@ -101,7 +101,7 @@ const FACE_SIDE_ROTATIONS: {
   // bottom side
   {
     face: FACE_BOTTOM,
-    rotation: Math.PI/2,
+    rotation: mathPI/2,
   }
   */
 ],
@@ -110,7 +110,7 @@ const FACE_SIDE_ROTATIONS: {
   // right side
   {
     fac: FACE_RIGHT,
-    rot: Math.PI/2,
+    rot: mathPI/2,
   },
   // top side
   {
@@ -121,12 +121,12 @@ const FACE_SIDE_ROTATIONS: {
   // left side
   {
     face: FACE_LEFT,
-    rotation: -Math.PI/2,
+    rotation: -mathPI/2,
   },
   // bottom side
   {
     face: FACE_FRONT,
-    rotation: Math.PI,
+    rotation: mathPI,
   },
   */
 ],
@@ -140,7 +140,7 @@ const FACE_SIDE_ROTATIONS: {
   // top side
   {
     fac: FACE_TOP,
-    rot: Math.PI,
+    rot: mathPI,
   },
   /*
   // left side
@@ -151,7 +151,7 @@ const FACE_SIDE_ROTATIONS: {
   // bottom side
   {
     face: FACE_BOTTOM,
-    rotation: Math.PI,
+    rotation: mathPI,
   },
   */
 ],
@@ -165,7 +165,7 @@ const FACE_SIDE_ROTATIONS: {
   // top side
   {
     fac: FACE_TOP,
-    rot: Math.PI/2,
+    rot: mathPI/2,
   },
   /*
   // left side
@@ -176,7 +176,7 @@ const FACE_SIDE_ROTATIONS: {
   // bottom side
   {
     face: FACE_BOTTOM,
-    rotation: Math.PI
+    rotation: mathPI
   }
   */
 ],
@@ -214,28 +214,28 @@ type PerimeterPoint = {
   maxZ?: number,
 };
 
-function bisectHorizontallyOnPoints(
-  perimeter: PerimeterPoint[],
-  points: PerimeterPoint[],
-): PerimeterPoint[][] {
-  return points.reduce((faces, point) => {
+// const bisectHorizontallyOnPoints = (
+//   perimeter: PerimeterPoint[],
+//   points: PerimeterPoint[],
+// ): PerimeterPoint[][] => {
+//   return points.reduce((faces, point) => {
 
-    return faces.flatMap(face => {
-      const [above, below] = bisectHorizontallyOnY(face, point.pos[1]);
-      // if (above.some(hasDupes) || below.some(hasDupes)) {
-      //   console.log('what??');
-      //   bisectHorizontallyOnY(face, point.position[1]);
-      // }
+//     return faces.flatMap(face => {
+//       const [above, below] = bisectHorizontallyOnY(face, point.pos[1]);
+//       // if (above.some(hasDupes) || below.some(hasDupes)) {
+//       //   console.log('what??');
+//       //   bisectHorizontallyOnY(face, point.position[1]);
+//       // }
 
-      return above.concat(below);
-    })
-  }, [perimeter]);
-}
+//       return above.concat(below);
+//     })
+//   }, [perimeter]);
+// }
 
-function bisectHorizontallyOnY(
+const bisectHorizontallyOnY = (
   rawPerimeter: PerimeterPoint[],
   y: number,
-): [PerimeterPoint[][], PerimeterPoint[][]] {
+): [PerimeterPoint[][], PerimeterPoint[][]] => {
   const perimeter = normalizePerimeter(rawPerimeter);
   const intersections = strictIntersectionsAtY(perimeter, y);
 
@@ -272,7 +272,7 @@ function bisectHorizontallyOnY(
       const pNext = perimeter[(i+1)%perimeter.length];
       const dy = pNext.pos[1] - p.pos[1];
       // this check is necessary v
-      const proportion = Math.abs(dy) > ERROR_MARGIN
+      const proportion = mathAbs(dy) > ERROR_MARGIN
           ? (y - p.pos[1])/dy
           : 0;
       const textureCoordinate: Vector2 | undefined = p.textureCoordinate && pNext.textureCoordinate
@@ -287,8 +287,8 @@ function bisectHorizontallyOnY(
           // NOTE: should always be undefined, can probably remove
           //: p.position[2] || pNext.position[2];
           : undefined;
-      const farY = Math.abs(y - p.pos[1]) > ERROR_MARGIN;
-      const nextNearY = Math.abs(y - pNext.pos[1]) < ERROR_MARGIN;
+      const farY = mathAbs(y - p.pos[1]) > ERROR_MARGIN;
+      const nextNearY = mathAbs(y - pNext.pos[1]) < ERROR_MARGIN;
       if (i < i1 || i === i1 && farY || i > i2) {
         above.push(copyP);
       }
@@ -330,8 +330,8 @@ function bisectHorizontallyOnY(
 
     const uniqueFilter =  (p: PerimeterPoint, i: number, a: PerimeterPoint[]) => {
       const pNext = a[(i+1)%a.length];
-      return Math.abs(p.pos[0] - pNext.pos[0]) < ERROR_MARGIN
-          && Math.abs(p.pos[1] - pNext.pos[1]) < ERROR_MARGIN
+      return mathAbs(p.pos[0] - pNext.pos[0]) < ERROR_MARGIN
+          && mathAbs(p.pos[1] - pNext.pos[1]) < ERROR_MARGIN
           ? []
           : [p];
     }
@@ -353,23 +353,23 @@ function bisectHorizontallyOnY(
 // function hasDupes(perimeter: PerimeterPoint[]) {
 //   let previous = perimeter[perimeter.length - 1];
 //   return perimeter.some(p => {
-//     const b = (Math.abs(p.position[0] - previous.position[0]) < ERROR_MARGIN && Math.abs(p.position[1] - previous.position[1]) < ERROR_MARGIN);
+//     const b = (abs(p.position[0] - previous.position[0]) < ERROR_MARGIN && abs(p.position[1] - previous.position[1]) < ERROR_MARGIN);
 //     previous = p;
 //     return b;
 //   });
 // }
 
-function intersectionsAtY(
+const intersectionsAtY = (
   perimeter: PerimeterPoint[],
   y: number
-) {
+) => {
   return perimeter.flatMap<[number, number, number]>((point, i) => {
     const nextIndex = (i+1)%perimeter.length;
     const nextPoint = perimeter[nextIndex];
     const [x1, y1] = point.pos;
     const [x2, y2] = nextPoint.pos;
 
-    const currentIsNotHorizontal = Math.abs(y2 - y1) > ERROR_MARGIN;
+    const currentIsNotHorizontal = mathAbs(y2 - y1) > ERROR_MARGIN;
     const up = y2 - ERROR_MARGIN < y && y < y1 + ERROR_MARGIN;
     const down = y1 - ERROR_MARGIN < y && y < y2 + ERROR_MARGIN;
     let result: [number, number, number][] = [];
@@ -386,18 +386,18 @@ function intersectionsAtY(
   }).sort(([x1, i1, dir1], [x2, i2, dir2]) => x1 - x2 + (dir2 - dir1) * ERROR_MARGIN);
 }
 
-function strictIntersectionsAtY(
+const strictIntersectionsAtY = (
   perimeter: PerimeterPoint[],
   y: number
-) {
+) => {
   const intersections = intersectionsAtY(perimeter, y);
   return intersections.flatMap((p, i, a) => {
     const pNext = a[i+1];
     if (pNext && p[2] == DIRECTION_DOWN && pNext[2] == DIRECTION_UP) {
       const index = p[1];
       const indexNext = pNext[1];
-      const minIndex = Math.min(index, indexNext);
-      const maxIndex = Math.max(index, indexNext);
+      const minIndex = mathMin(index, indexNext);
+      const maxIndex = mathMax(index, indexNext);
       const check = (p: PerimeterPoint) => p.pos[1] + ERROR_MARGIN < y || p.pos[1] - ERROR_MARGIN > y;
       const a1: PerimeterPoint[] = perimeter.slice(minIndex + 1, maxIndex + 1);
       const a2: PerimeterPoint[] = perimeter.slice(maxIndex + 1).concat(perimeter.slice(0, minIndex + 1));
@@ -425,10 +425,10 @@ function strictIntersectionsAtY(
 //     prevPoint = point;
 
 //     const errorMargin = strict ? -ERROR_MARGIN : ERROR_MARGIN;
-//     const near = Math.abs(y1 - y) < ERROR_MARGIN;
+//     const near = abs(y1 - y) < ERROR_MARGIN;
 //     const previousWasDown = y1 - y0 > ERROR_MARGIN;
 //     const previousWasUp = y1 - y0 < -ERROR_MARGIN;
-//     const currentIsNotHorizontal = Math.abs(y2 - y1) > ERROR_MARGIN;
+//     const currentIsNotHorizontal = abs(y2 - y1) > ERROR_MARGIN;
 //     const up = y2 - errorMargin < y && y < y1 + ERROR_MARGIN && currentIsNotHorizontal || near && previousWasUp && x2 > x1 + ERROR_MARGIN;
 //     const down = y1 - ERROR_MARGIN < y && y < y2 + errorMargin && currentIsNotHorizontal || near && previousWasDown && x2 < x1 - ERROR_MARGIN;
 //     let result: [number, number, number, PerimeterPoint | undefined][] = [];
@@ -462,12 +462,12 @@ function strictIntersectionsAtY(
 //   }).sort(([x1], [x2]) => x1 - x2);
 // }
 
-function intersectionToLeftX(perimeter: PerimeterPoint[], [x, y]: Vector2): number | undefined {
-  // only interested in right-facing lines
-  return intersectionsAtY(perimeter, y).filter(([ix, i, up]) => ix < x && !up).map(([ix]) => ix)[0];
-}
+// const intersectionToLeft = (perimeter: PerimeterPoint[], [x, y]: Vector2): number | undefined => {
+//   // only interested in right-facing lines
+//   return intersectionsAtY(perimeter, y).filter(([ix, i, up]) => ix < x && !up).map(([ix]) => ix)[0];
+// }
 
-function rotatePerimeter(angle: number, perimeter: PerimeterPoint[]): PerimeterPoint[] {
+const rotatePerimeter = (angle: number, perimeter: PerimeterPoint[]): PerimeterPoint[] => {
   return normalizePerimeter(perimeter.map(p => ({
     ...p,
     pos: vector2Rotate(angle, p.pos)
@@ -475,19 +475,19 @@ function rotatePerimeter(angle: number, perimeter: PerimeterPoint[]): PerimeterP
 }
 
 // NOTE: could be made smaller with a sort and an indexof
-function normalizePerimeter(perimeter: PerimeterPoint[]): PerimeterPoint[] {
+const normalizePerimeter = (perimeter: PerimeterPoint[]): PerimeterPoint[] => {
   // ensure that the points still start at the top-left
   const topLeftIndex = perimeter.reduce<number>((minIndex, point, index) => {
     const minPoint = perimeter[minIndex];
     return point.pos[1] < minPoint.pos[1] - ERROR_MARGIN
-        || Math.abs(point.pos[1] - minPoint.pos[1]) < ERROR_MARGIN && point.pos[0] < minPoint.pos[0] - ERROR_MARGIN
+        || mathAbs(point.pos[1] - minPoint.pos[1]) < ERROR_MARGIN && point.pos[0] < minPoint.pos[0] - ERROR_MARGIN
         ? index
         : minIndex;
   }, 0);
   return perimeter.slice(topLeftIndex).concat(perimeter.slice(0, topLeftIndex));
 }
 
-function getPerimeter(model: ModelDefinition, perimeters: (PerimeterPoint[]|undefined)[], face: FaceId): PerimeterPoint[] {
+const getPerimeter = (model: ModelDefinition, perimeters: (PerimeterPoint[]|undefined)[], face: FaceId): PerimeterPoint[] => {
   let perimeter = perimeters[face];
   if (!perimeter) {
     // is the opposite perimeter specified?
@@ -539,22 +539,22 @@ function getPerimeter(model: ModelDefinition, perimeters: (PerimeterPoint[]|unde
   return perimeter;
 }
 
-function bounds(perimeter: PerimeterPoint[]): Rect2 {
+const bounds = (perimeter: PerimeterPoint[]): Rect2 => {
   const [x, y] = perimeter[0].pos;
   // return perimeter.reduce<Rect2>(
   //   ([rx, ry, rw, rh], {position: [x, y]}) =>
-  //     [Math.min(rx, x), Math.min(ry, y), Math.max(rw, rx + rw - x), Math.max(rh, ry + rh - y)],
+  //     [mathMin(rx, x), mathMin(ry, y), max(rw, rx + rw - x), max(rh, ry + rh - y)],
   //   [x, y, 0, 0]
   // );
   const [minx, miny, maxx, maxy] = perimeter.reduce<Rect2>(
     ([minx, miny, maxx, maxy], {pos: [x, y]}) =>
-      [Math.min(minx, x), Math.min(miny, y), Math.max(maxx, x), Math.max(maxy, y)],
+      [mathMin(minx, x), mathMin(miny, y), mathMax(maxx, x), mathMax(maxy, y)],
     [x, y, x, y]
   );
   return [minx, miny, maxx - minx, maxy - miny];
 }
 
-function defaultPerimeter(model: ModelDefinition, face: FaceId): PerimeterPoint[] {
+const defaultPerimeter = (model: ModelDefinition, face: FaceId): PerimeterPoint[] => {
   const w = model[DIMENSION_WIDTH] || 1;
   const h = model[DIMENSION_HEIGHT] || 1;
   const d = model[DIMENSION_DEPTH] || 1;
@@ -585,7 +585,7 @@ function defaultPerimeter(model: ModelDefinition, face: FaceId): PerimeterPoint[
   }];
 }
 
-function calculateOppositePerimeter(perimeters: (PerimeterPoint[]|undefined)[], face: FaceId): PerimeterPoint[] | undefined {
+const calculateOppositePerimeter = (perimeters: (PerimeterPoint[]|undefined)[], face: FaceId): PerimeterPoint[] | undefined => {
   const oppositePerimeter = perimeters[(face + 3) % 6];
   if (oppositePerimeter) {
     const mult = face % 3 ? -1 : 1;
@@ -596,25 +596,25 @@ function calculateOppositePerimeter(perimeters: (PerimeterPoint[]|undefined)[], 
   }
 }
 
-function extractPerimeters(model: ModelDefinition, i: HTMLImageElement, imageWidth: number, imageHeight: number): (PerimeterPoint[]|undefined)[] {
+const extractPerimeters = (model: ModelDefinition, i: HTMLImageElement, imageWidth: number, imageHeight: number): (PerimeterPoint[]|undefined)[] => {
   const canvas = document.createElement('canvas');
-  const context = canvas.getContext('2d');
+  const context: ExtendedCanvasRenderingContext2D = shortenMethods(canvas.getContext('2d'));
   return FACE_IDS.map(face => {
     const rect = model[face];
     if (rect) {
       const [bx, by, bw, bh] = rect;
       canvas.width = bw;
       canvas.height = bh;
-      context.drawImage(i, bx, by, bw, bh, 0, 0, bw, bh);
+      context['drIme'](i, bx, by, bw, bh, 0, 0, bw, bh);
 
-      const imageData = context.getImageData(0, 0, bw, bh);
+      const imageData = context['geImDaa'](0, 0, bw, bh);
 
       return extractPerimeter(imageData.data, bx, by, bw, bh, imageWidth, imageHeight);
     }
   });
 }
 
-function extractPerimeter(data: Uint8Array | Uint8ClampedArray, bx: number, by: number, bw: number, bh: number, imageWidth: number, imageHeight: number) {
+const extractPerimeter = (data: Uint8Array | Uint8ClampedArray, bx: number, by: number, bw: number, bh: number, imageWidth: number, imageHeight: number) => {
   const cx = bw/2;
   const cy = bh/2;
 // find the first non-white pixel
@@ -643,8 +643,8 @@ function extractPerimeter(data: Uint8Array | Uint8ClampedArray, bx: number, by: 
       perimeter.push({
         pos: [px - cx, py - cy],
         textureCoordinate: [
-          (px + bx + Math.cos(sideAngle + textureInsetAngle)/9)/imageWidth,
-          (py + by + Math.sin(sideAngle + textureInsetAngle)/9)/imageHeight
+          (px + bx + mathCos(sideAngle + textureInsetAngle)/9)/imageWidth,
+          (py + by + mathSin(sideAngle + textureInsetAngle)/9)/imageHeight
         ],
         textureCoordinateOriginal: 1,
         fixd: previousColor != color && previousColor && color,
@@ -653,7 +653,7 @@ function extractPerimeter(data: Uint8Array | Uint8ClampedArray, bx: number, by: 
     previousSide = wside;
     previousColor = color;
     for (const delta of WALK_DELTAS) {
-      const [dx, dy] = vectorNRound(vector2Rotate(sideAngle, delta as any as Vector2));
+      const [dx, dy] = vector2Rotate(sideAngle, delta as any as Vector2).map(Math.round);
       const px = wx + dx;
       const py = wy + dy;
       const pi = py * bw + px;
@@ -678,13 +678,13 @@ function extractPerimeter(data: Uint8Array | Uint8ClampedArray, bx: number, by: 
     const [anext, dnext] = vector2AngleAndDistance(current, next);
     if (ry < -ERROR_MARGIN && !fixed && (dprevious < 1.1 || dnext < 1.1)) {
       // if (nnx < 0) {
-      //   current[0] += Math.cos(anext) * dnext/2;
-      //   current[1] += Math.sin(anext) * dnext/2
+      //   current[0] += mathCos(anext) * dnext/2;
+      //   current[1] += mathSin(anext) * dnext/2
       // } else {
       //   const [a] = vector2AngleAndDistance(vector2Rotate(-aprevious, previous), vector2Rotate(-aprevious, next));
-      //   const l = Math.cos(a) * dprevious;
-      //   current[0] = previous[0] + Math.cos(a + aprevious) * l;
-      //   current[1] = previous[1] + Math.sin(a + aprevious) * l;
+      //   const l = mathCos(a) * dprevious;
+      //   current[0] = previous[0] + mathCos(a + aprevious) * l;
+      //   current[1] = previous[1] + mathSin(a + aprevious) * l;
       // }
       current[0] = (previous[0] + next[0])/2;
       current[1] = (previous[1] + next[1])/2;
@@ -696,7 +696,7 @@ function extractPerimeter(data: Uint8Array | Uint8ClampedArray, bx: number, by: 
   return perimeter.reverse();
 }
 
-function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): PerimeterPoint[][][] {
+const modelToFaces = (model: ModelDefinition, perimeters: PerimeterPoint[][]): PerimeterPoint[][][] => {
 
   const triangles = FACE_IDS.map(faceId => {
     const face = getPerimeter(model, perimeters, faceId);
@@ -710,8 +710,8 @@ function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): P
       console.log('***');
     }
 
-    FACE_SIDE_ROTATIONS[faceId]?.forEach(({ fac: sideFaceId, rot: rotation = 0 }, side) => {
-      const angle = side * Math.PI/2;
+    FACE_SIDE_ROTATIONS[faceId]?.map(({ fac: sideFaceId, rot: rotation = 0 }, side) => {
+      const angle = side * mathPI/2;
       const unrotatedSidePerimeter = getPerimeter(model, perimeters, sideFaceId);
       const sidePerimeter = rotatePerimeter(rotation + angle, unrotatedSidePerimeter);
       if (DEBUG_MODEL_GENERATION) {
@@ -719,7 +719,19 @@ function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): P
       }
 
       // bisect face against horizontally to ensure the cross-sectioning works for partial-overlapping
-      const surfaces: Surface[] = bisectHorizontallyOnPoints(sidePerimeter, sidePerimeter.concat(rotatePerimeter(angle, face)))
+      const surfaces: Surface[] =
+          //bisectHorizontallyOnPoints(sidePerimeter, sidePerimeter.concat(rotatePerimeter(angle, face)))
+          sidePerimeter.concat(rotatePerimeter(angle, face)).reduce((faces, point) => {
+            return faces.flatMap(face => {
+              const [above, below] = bisectHorizontallyOnY(face, point.pos[1]);
+              // if (above.some(hasDupes) || below.some(hasDupes)) {
+              //   console.log('what??');
+              //   bisectHorizontallyOnY(face, point.position[1]);
+              // }
+
+              return above.concat(below);
+            })
+          }, [sidePerimeter])
           .flatMap(face => face.flatMap((point, i) => {
             const previousPoint = face[(i + face.length - 1)%face.length]
             const p1 = previousPoint.pos;
@@ -765,7 +777,7 @@ function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): P
           const minZ2: number | undefined = (intersections2.reverse().find(minFinder) || [])[0];
 
           // are the intersection points within the min/max z for this face?
-          // NOTE: can probably remove Math.min Math.max and just pick one point to compare
+          // NOTE: can probably remove mathMin max and just pick one point to compare
           const below = bisectHorizontallyOnY(rotatedFace, p1[1])[1];
           const faces = below
               .flatMap(face => bisectHorizontallyOnY(face, p2[1])[0])
@@ -773,12 +785,12 @@ function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): P
                 if (DEBUG_MODEL_GENERATION) {
                   console.log('bisected face', surface, face);
                 }
-                if (face.some(p => p.maxZ != null && p.maxZ < Math.max(p1[0], p2[0]) - ERROR_MARGIN)) {
+                if (face.some(p => p.maxZ != null && p.maxZ < mathMax(p1[0], p2[0]) - ERROR_MARGIN)) {
                   // console.log('removing', face);
                   return [];
                 } else {
 
-                  const passThrough = face.some(p => p.minZ != null && p.minZ > Math.min(p1[0], p2[0]) + ERROR_MARGIN);
+                  const passThrough = face.some(p => p.minZ != null && p.minZ > mathMin(p1[0], p2[0]) + ERROR_MARGIN);
 
                   const zMappedUnrotatedFace = rotatePerimeter(-angle, face.map(p => {
                     if (!passThrough) {
@@ -793,11 +805,11 @@ function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): P
                       ]
                       : undefined;
 
-                      if (Math.abs(p.pos[1] - p1[1]) < ERROR_MARGIN) {
+                      if (mathAbs(p.pos[1] - p1[1]) < ERROR_MARGIN) {
                         minZ = minZ1;
                         maxZ = maxZ1;
                       }
-                      if (Math.abs(p.pos[1] - p2[1]) < ERROR_MARGIN) {
+                      if (mathAbs(p.pos[1] - p2[1]) < ERROR_MARGIN) {
                         minZ = minZ2;
                         maxZ = maxZ2;
                       }
@@ -818,7 +830,7 @@ function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): P
                         //   console.log('overwriting minZ', p.minZ, minZ);
                         // }
                         p.minZ = p.minZ != null
-                            ? Math.max(p.minZ, minZ)
+                            ? mathMax(p.minZ, minZ)
                             : minZ;
                       }
                       if (maxZ != null) {
@@ -826,7 +838,7 @@ function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): P
                         //   console.log('overwriting maxZ', p.maxZ, maxZ);
                         // }
                         p.maxZ = p.maxZ != null
-                            ? Math.min(p.maxZ, maxZ)
+                            ? mathMin(p.maxZ, maxZ)
                             : maxZ;
                       }
                     }
@@ -856,7 +868,7 @@ function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): P
 
                     const averageZ = zMappedUnrotatedFace.reduce((v, p) => p.pos[2] + v, 0) / zMappedUnrotatedFace.length;
 
-                    //const pivotIndex = Math.max(zMappedUnrotatedFace.findIndex(p => p.diagonalExternal), 0);
+                    //const pivotIndex = max(zMappedUnrotatedFace.findIndex(p => p.diagonalExternal), 0);
                     // let pivotIndex = 0;
                     // if (normal[0] > 0) {
                     //   pivotIndex += 2;
@@ -864,14 +876,14 @@ function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): P
                     // if (normal[1] > 0) {
                     //   pivotIndex++;
                     // }
-                    // pivotIndex = Math.min(pivotIndex, zMappedUnrotatedFace.length - 1);
+                    // pivotIndex = mathMin(pivotIndex, zMappedUnrotatedFace.length - 1);
 
-                    // if (Math.abs(normal[0]) > ERROR_MARGIN && Math.abs(normal[1]) > ERROR_MARGIN && zMappedUnrotatedFace.length > 3) {
+                    // if (abs(normal[0]) > ERROR_MARGIN && abs(normal[1]) > ERROR_MARGIN && zMappedUnrotatedFace.length > 3) {
                     //   console.log('two axis normal', normal, pivotIndex, zMappedUnrotatedFace);
                     // }
                     let maxDiff: undefined | number;
                     const pivotIndex = zMappedUnrotatedFace.reduce((i, p, j) => {
-                      const diff = Math.abs(p.pos[2] - averageZ);
+                      const diff = mathAbs(p.pos[2] - averageZ);
                       if (maxDiff == null || diff > maxDiff + ERROR_MARGIN || diff > maxDiff - ERROR_MARGIN && diff < maxDiff + ERROR_MARGIN && p.popped) {
                         maxDiff = diff;
                         return j;
@@ -904,8 +916,8 @@ function modelToFaces(model: ModelDefinition, perimeters: PerimeterPoint[][]): P
 
                           const normal = vectorNNormalize(vector3CrossProduct(n1, n2));
                           const keep = (faceId % 3 == FACE_FRONT)
-                              || ((faceId % 3) == FACE_LEFT && Math.abs(normal[0]) < ERROR_MARGIN)
-                              || (!(faceId % 3) && Math.abs(normal[0]) < ERROR_MARGIN && Math.abs(normal[1]) < ERROR_MARGIN);
+                              || ((faceId % 3) == FACE_LEFT && mathAbs(normal[0]) < ERROR_MARGIN)
+                              || (!(faceId % 3) && mathAbs(normal[0]) < ERROR_MARGIN && mathAbs(normal[1]) < ERROR_MARGIN);
                           // if (!keep) {
                           //   console.log('dropping face', side, normal, pivotPoint, point, nextPoint);
                           // } else {

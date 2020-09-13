@@ -1,4 +1,5 @@
 ///<reference path="colors.ts"/>
+///<reference path="sound.ts"/>
 
 const DEFAULT_DEPTH = 3;
 
@@ -18,12 +19,13 @@ let modelPerimeters: PerimeterPoint[][][];
 let mainProgramInputs: MainProgramInputs;
 const STEP_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .05, .02, 2e3, .06, .03));
 const RUN_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .05, .01, 1e3, .2, .1));
-const MONSTER_SHUFFLE_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .03, .02, 799, .2, .1));
+const MONSTER_SHUFFLE_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .03, .02, 799, .15, .07));
 const CHOKING_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .5, .2, 499, .1, .05));
 const SWITCH_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .02, 0, 3e3, .2, .1));
+const DOOR_SOUND = lazySoundEffect((audioContext) => webAudioBoomSoundEffectFactory(audioContext, .5, .3, 2e3, .07, 0));
 
 let nextEntityId = 10;
-function makeStaticEntity(
+const makeStaticEntity = (
   modelId: number,
   cx: number,
   cy: number,
@@ -33,7 +35,7 @@ function makeStaticEntity(
   palette?: Vector4[],
   centered?: 0 | 1,
   z?: number
-): Entity {
+): Entity => {
   palette = palette || new Array(4).fill(0).map((_, i) => new Array(3).fill(i/3).concat(1) as Vector4);
   const rx = cx / CONST_ROOM_DIMENSION | 0;
   const ry = cy / CONST_ROOM_DIMENSION | 0;
@@ -56,7 +58,7 @@ function makeStaticEntity(
           : CONST_PI_ON_2_3DP
 
   const halfBounds = mainProgramInputs.modelBuffers[modelId].halfBounds;
-  const scale = Math.abs(dimension)*.5/halfBounds[dimension>0 ? 0 : 1];
+  const scale = mathAbs(dimension)*.5/halfBounds[dimension>0 ? 0 : 1];
   const perimeter = collisionType < 0 // static collision
       ? getPerimeter(models[modelId], modelPerimeters[modelId], FACE_TOP)
           .map(p => {
@@ -70,15 +72,15 @@ function makeStaticEntity(
   // const zRotation = alternateAngle
   //     ? cx - rx * ROOM_DIMENSION < ROOM_DIMENSION/2
   //           ? 0
-  //           : Math.PI
+  //           : mathPI
   //     : cy - ry * ROOM_DIMENSION < ROOM_DIMENSION/2
-  //           ? Math.PI/2
-  //           : -Math.PI/2;
+  //           ? mathPI/2
+  //           : -mathPI/2;
 
   const dimensions = halfBounds.map(d => d * scale) as Vector3;
   const rotatedDimensions = vector2Rotate(-zRotation, dimensions);
   const rotatedPosition = vector2Rotate(-zRotation, [cx, cy, z || 0]);
-  rotatedPosition[0] -= .5-Math.abs(rotatedDimensions[0]);
+  rotatedPosition[0] -= .5-mathAbs(rotatedDimensions[0]);
   const position: Vector3 = centered
     ? [cx, cy, z || 0]
     : vector2Rotate(zRotation, rotatedPosition) as Vector3;
@@ -126,7 +128,7 @@ const switchFeatureFactory = (world: World, x: number, y: number, alternateAngle
   entity.circuit = circuit;
   if (doorSwitch) {
     entity.badges = {
-      0: [[1, 0, 1, circuit + 4]],
+      0: [[1, 0, 1, circuit + 8]],
     };
   }
   world.switches.push(entity);
@@ -163,38 +165,66 @@ const lightFeatureFactory = (world: World, x: number, y: number, alternateAngle:
   let i = 32;
   while (i) {
     i--;
-    if (Math.random()*i/32<(9-circuit)/99) {
+    if (mathRandom()*i/32<.01) {
       entity.flicker = entity.flicker | (1 << i);
     }
   }
 
   addEntity(world, entity);
 
-
   if (isSpecial) {
+
     // also is the player starting point
-    const hairColors: Vector4[] = [
-      [.1, .1, .2, 1],
-      [.3, .3, .1, 1],
-      [.4, .1, .1, 1],
-      [.3, .3, .3, 1],
-      [.2, .2, .1, 1],
-    ];
-    const mutedClothingColors: Vector4[] = [
-      [.4, .4, .6, 1],
-      [.5, .4, .4, 1],
-      [.5, .5, .5, 1],
-      [.3, .3, .3, 1],
-      [.4, .5, .4, 1],
-    ];
-    const brightClothingColors: Vector4[] = [
-      [.7, .5, .2, 1],
-      [.7, .7, .1, 1],
-      [.5, .7, .5, 1],
-      [.7, .5, .5, 1],
-      [.5, .5, .7, 1],
-      [.4, .6, .6, 1],
-    ];
+    // const hairColors: Vector4[] = [
+    //   [.1, .1, .2, 1],
+    //   [.3, .3, .1, 1],
+    //   [.4, .1, .1, 1],
+    //   [.3, .3, .3, 1],
+    //   [.2, .2, .1, 1],
+    // ];
+    // const mutedClothingColors: Vector4[] = [
+    //   [.4, .4, .6, 1],
+    //   [.5, .4, .4, 1],
+    //   [.5, .5, .5, 1],
+    //   [.3, .3, .3, 1],
+    //   [.4, .5, .4, 1],
+    // ];
+    // const brightClothingColors: Vector4[] = [
+    //   [.7, .5, .2, 1],
+    //   [.7, .7, .1, 1],
+    //   [.5, .7, .5, 1],
+    //   [.7, .5, .5, 1],
+    //   [.5, .5, .7, 1],
+    //   [.4, .6, .6, 1],
+    // ];
+    const hairColors: Vector4[] = FLAG_RANDOM_PLAYER_COLORS
+        ? new Array(5).fill(0).map(_=>convertHSLtoRGB(mathRandom(), mathRandom()/2, mathRandom()/2))
+        : [
+            [.1, .1, .2, 1],
+            [.3, .3, .1, 1],
+            //[.4, .1, .1, 1],
+            [.3, .3, .3, 1],
+            //[.2, .2, .1, 1],
+        ];
+    const mutedClothingColors: Vector4[] = FLAG_RANDOM_PLAYER_COLORS
+        ? new Array(5).fill(0).map(_=>convertHSLtoRGB(mathRandom(), mathRandom()/5, mathRandom()/7+.1))
+        : [
+            [.4, .4, .6, 1],
+            [.5, .4, .4, 1],
+            //[.5, .5, .5, 1],
+            [.3, .3, .3, 1],
+            [.4, .5, .4, 1],
+          ];
+    const brightClothingColors: Vector4[] = FLAG_RANDOM_PLAYER_COLORS
+        ? new Array(6).fill(0).map(_=> convertHSLtoRGB(mathRandom(), mathRandom()/2, mathRandom()/2+.2))
+        : [
+            [.7, .5, .2, 1],
+            //[.7, .7, .1, 1],
+            [.5, .7, .5, 1],
+            //[.7, .5, .5, 1],
+            [.5, .5, .7, 1],
+            [.4, .6, .6, 1],
+          ];
     const skinColors: Vector4[] = [
       [.7, .6, .6, 1],
       [.6, .5, .5, 1],
@@ -202,30 +232,30 @@ const lightFeatureFactory = (world: World, x: number, y: number, alternateAngle:
     ];
 
     const mouthes: number[] = [
-      1, // -
-      2, // .
-      47,
-      48,
-      49,
-      50,
+      4, // ⌓
+      5, // ⌢
+      6, // ⌣
+      7, // ‿
+      17, // -
+      2, // •
     ];
     const eyes: number[] = [
-      18, // >
-      51,
-      52,
-      53
+      1, //°
+      2, //•
+      3, //ᵔ
+      34 // >
     ];
 
     const skinColor = randomValueFromArray(skinColors);
-    const hairColor = randomValueFromArray([...hairColors, skinColor]);
+    const hairColor = randomValueFromArray(hairColors.concat([skinColor]));
     const pantsColor = randomValueFromArray(mutedClothingColors);
-    const shirtColor = randomValueFromArray([...brightClothingColors, ...mutedClothingColors, skinColor]);
-    const coatColor = randomValueFromArray([...mutedClothingColors, ...brightClothingColors, shirtColor, shirtColor]);
+    const shirtColor = randomValueFromArray(brightClothingColors.concat(mutedClothingColors).concat([skinColor]));
+    const coatColor = randomValueFromArray(mutedClothingColors.concat(brightClothingColors).concat(new Array(5).fill(shirtColor)));
     const sleeveColor = randomValueFromArray([skinColor, skinColor, shirtColor, coatColor])
     const shoesColor = randomValueFromArray(mutedClothingColors);
     const pantLegColor = randomValueFromArray([pantsColor, skinColor]);
-    const sockColor = randomValueFromArray([pantLegColor, ...mutedClothingColors, ...brightClothingColors]);
-    const headbandColor = Math.random() < .1 ? coatColor : randomValueFromArray([skinColor, hairColor]);
+    const sockColor = randomValueFromArray(mutedClothingColors.concat([pantLegColor]).concat(brightClothingColors));
+    const headbandColor = mathRandom() < .1 ? coatColor : randomValueFromArray([skinColor, hairColor]);
     const eye = randomValueFromArray(eyes);
     //const eye = 224;
 
@@ -257,18 +287,18 @@ const lightFeatureFactory = (world: World, x: number, y: number, alternateAngle:
           // mouth
           [1, 0, -.8, randomValueFromArray(mouthes)],
           // left eye
-          [-1, -Math.PI/7, .7, eye],
+          [-1, -mathPI/7, .7, eye],
           // right eye
-          [1, Math.PI/7, .7, eye],
+          [1, mathPI/7, .7, eye],
         ],
         [PART_ID_TORSO]: [
           // // 4
-          // [1, Math.PI, 1, 3],
+          // [1, mathPI, 1, 3],
           // // 0
-          // [1, Math.PI*.8, 1, 7],
+          // [1, mathPI*.8, 1, 7],
           // // 4
-          // [1, -Math.PI*.8, 1, 7]
-          [Math.random() > .5 ? 0 : 1 + Math.random(), shirtColor==coatColor ? 0 : CONST_PI_1DP, 1, 54+Math.random()*169|0],
+          // [1, -mathPI*.8, 1, 7]
+          [mathRandom() > .5 ? 0 : 1 + mathRandom(), shirtColor==coatColor ? 0 : CONST_PI_1DP, 1, (36+mathRandom()*219)|0],
         ]
       },
       zRotation: CONST_PI_ON_2_1DP,
@@ -331,10 +361,9 @@ const doorFactory = (world: World, x: number, y: number, alternateAngle: boolean
     door.invisible = 1;
   }
   door.reversed = reversed;
-  const charIndex = (1 - reversed * 2) * (circuit + 4);
+  const charIndex = circuit + (reversed)*4 + 8;
   door.badges = {
-    // negative badges get rendered upsidedown
-    0: [[.8, 0, -3, charIndex], [.8, CONST_PI_1DP, -3, charIndex]],
+    0: [[.8, 0, -3.1, charIndex], [.8, CONST_PI_1DP, -3.1, charIndex]],
   };
 
   const wall = makeStaticEntity(MODEL_ID_LOW_WALL, x, y, 1, COLLISION_TYPE_STATIC, alternateAngle, [COLOR_OFF_WHITE], 1, door.depthZ);
@@ -379,7 +408,7 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
       COLOR_OFF_WHITE,
       COLOR_OFF_WHITE,
       COLOR_WALL,
-      COLOR_OFF_WHITE,
+      //COLOR_OFF_WHITE,
     ];
     addEntity(world, makeStaticEntity(MODEL_ID_WALL, x, y, 1, COLLISION_TYPE_STATIC, alternateAngle, wallPalette))
   },
@@ -391,9 +420,10 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
       COLOR_WHITE,
     ];
     const entity = makeStaticEntity(MODEL_ID_WALL, x, y, 1, COLLISION_TYPE_STATIC, alternateAngle, wallPalette);
-    if ((x | 0) == 23) {
+    if ((x | 0) == 23 && FLAG_SHOW_ALIEN_BADGE) {
       entity.badges = {
-        0: [[1, CONST_PI_ON_8_1DP, 1, 220], [1, -CONST_PI_ON_8_1DP, 1, 19]]
+        // 👽⚠️
+        0: [[2.2, 0, 4, 252], [2, 0, -1, 63]]
       };
     }
     addEntity(world, entity)
@@ -411,7 +441,7 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
   '+': (world, x, y, alternateAngle) => {
     const palette: Vector4[] = [
       COLOR_OFF_WHITE,
-      COLOR_WOOD_DARK,
+      COLOR_OFF_WHITE,
       COLOR_WALL,
     ];
     addEntity(world, makeStaticEntity(MODEL_ID_LOW_WALL, x, y, 1, COLLISION_TYPE_STATIC, alternateAngle, palette));
@@ -481,7 +511,7 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
   },
   // '*': (room, x, y) => {
   //   const definition = roomDefinitions[x/ROOM_DIMENSION | 0][y/ROOM_DIMENSION | 0];
-  //   const tanFOVDiv2 = Math.tan(Math.PI/2.5);
+  //   const tanFOVDiv2 = Math.tan(mathPI/2.5);
   //   room.lightPosition = [x, y, (definition.depth || DEFAULT_DEPTH), 1];
   //   room.lightProjection = matrix4MultiplyStack([
   //     matrix4Perspective(tanFOVDiv2, 1, .1, 9),
@@ -489,7 +519,7 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
   //   room.lightTanFOVOn2 = tanFOVDiv2;
   // },
   '&': (world, x, y) => {
-    const eye = 224;
+    const eye = 0;
     const entity: Entity = {
       id: nextEntityId++,
       palette: [
@@ -590,19 +620,19 @@ const roomDefinitions: RoomDefinition[][] = [
         '#__i+___#'+
         '#___+___Y'+
         '#___+8_B#'+
-        '#___!___O'+
+        '#___!___#'+
         '#______MO'+
         '#_____mLO'+
-        '#oo#w####'
+        '##oo#w####'
     },
     // 0,1
     {
       adjoiningRooms: ADJOIN_EAST | ADJOIN_NORTH,
       layout:
-        '#M d_i__O'+
+        '#M _d_i_#'+
+        '#M______#'+
         '#M______O'+
-        '#M______O'+
-        '#!_____G#'+
+        '#__!___G#'+
         '#+++8___S'+
         '#______C#'+
         '#_+#____#'+
@@ -629,39 +659,38 @@ const roomDefinitions: RoomDefinition[][] = [
     {
       adjoiningRooms: ADJOIN_NORTH | ADJOIN_EAST | ADJOIN_WEST | ADJOIN_NORTH_WEST,
       layout:
-        '___Tg___#'+
+        '___T_G###'+
         '___O_____'+
-        '__6O_!___'+
+        '__6O!____'+
         '___O_____'+
         '___O___E#'+
         '#ooooooo#'+
         '#_______#'+
-        'Y___c___V'+
+        'Y_____c_V'+
         '#########'
     }
   ],
   [
     // 2, 0
     {
-      adjoiningRooms: ADJOIN_WEST | ADJOIN_SOUTH | ADJOIN_SOUTH_WEST,
+      adjoiningRooms: ADJOIN_WEST | ADJOIN_SOUTH,
       layout:
-        '#########'+
-        '____+_R_#'+
-        '___!+_#_#'+
+        '######## '+
+        '__+___#9#'+
+        '__+_+_O_#'+
         '__+5+_O_#'+
-        '__+___O_#'+
-        'M_+___O_#'+
-        'oooooo#9#'+
-        '______# #'+
-        '____#a###'
+        '__!_+_O_#'+
+        'M___+_R_#'+
+        'oooooo###'+
+        '______ # '+
+        'm____+A#'
     },
     // 2, 1
     {
       depthZ: 4,
       adjoiningRooms: ADJOIN_WEST | ADJOIN_NORTH,
-      //ambientLight: -.1,
       layout:
-        '###y#####'+
+        '####y####'+
         '__X_____#'+
         '__O_____#'+
         '__O_m_m_#'+

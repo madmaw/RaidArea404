@@ -1,3 +1,5 @@
+///<reference path="../hax.ts"/>
+
 type Matrix4 = [
   number, number, number, number,
   number, number, number, number,
@@ -143,8 +145,8 @@ let matrix4RotateInOrder = (rx: number, ry: number, rz: number): Matrix4 => {
 let matrix4Rotate = (rad: number, x: number, y: number, z: number): Matrix4 => {
     let s_, c_, t_;
 
-    s_ = Math.sin(rad);
-    c_ = Math.cos(rad);
+    s_ = mathSin(rad);
+    c_ = mathCos(rad);
     t_ = 1 - c_;
     return [
         x * x * t_ + c_, y * x * t_ - z * s_, z * x * t_ - y * s_, 0,

@@ -114,15 +114,44 @@ module.exports = function (grunt) {
                   to: "null"
               }, {
                   from: "const ",
-                  to: "let "
+                  to: "var "
+              }, {
+                from: "let ",
+                to: "var "
+              }, {
+                //from: /\[(\d+)\]\:/,
+                from: /\[(\d+)\]:/g,
+                to: "$1:"
               }/*, {
-                  from: "var ",
-                  to: "let "
-              }*//*, {
-                  from: /\[(\d+)\]\:/,
-                  to: "${1}:"
-              }*/]
+                from: /const (([a-zA-Z_$][a-zA-Z0-9_$]*=Math(\.|\w)*,?)+);/g,
+                to: ';with(Math){$1}'
+              }, {
+                from: /const (([a-zA-Z_$][a-zA-Z0-9_$]*=Math(\.|\w)*,?)+),/g,
+                to: ';with(Math){$1};var '
+              }*/
+              /*, { // turn functions into => form
+                from: /(=|:|return |\(|,)function\(([^\)]*)\)/g,
+                to:"$1($2)=>"
+              }, { // replace all function decls with lets
+                from: /function ([^\)]+)(\([^\)]*\))/g,
+                to: "let $1=$2=>"
+              },*/]
           },
+          js2: { // second pass for the bits that we changed above
+            src: ['dist/out.min.js'],
+            overwrite: true,
+            replacements: [/*{// fix up all the missing semicolons from the previous function replacement
+                from: /\}(let |for\(|\(|[^;= \(,\}]+=)/g,
+                to: "};$1"
+
+            }, { // compress sequential var decls
+                from: /(let ([a-zA-Z_$][a-zA-Z0-9_$]*(=([^,\[\}\(;]+|\[[^\]]*\]))*,?)*);let /g,
+                to: "$1,"
+            }*/ /*{ // should all be contained in a with block
+                from: /Math\./g,
+                to: ""
+            }*/]
+        },
       },
       copy: {
           html: {
@@ -172,7 +201,7 @@ module.exports = function (grunt) {
   // Default task(s).
   grunt.registerTask('reset', ['clean:all']);
   grunt.registerTask('prod', ['ts']);
-  grunt.registerTask('dist', ['prod', 'closure-compiler:es2018', 'copy','cssmin','replace:html', 'replace:js', 'inline', 'htmlmin']);
+  grunt.registerTask('dist', ['prod', 'closure-compiler:es2018', 'copy','cssmin','replace:html', 'replace:js', 'replace:js2', 'inline', 'htmlmin']);
   grunt.registerTask('default', ['prod', 'connect', 'watch']);
 
 };

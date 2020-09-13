@@ -1,3 +1,3 @@
-function randomValueFromArray<T>(a: T[]): T {
-  return a[Math.random() * a.length | 0];
+const randomValueFromArray = <T>(a: T[]): T => {
+  return a[mathRandom() * a.length | 0];
 }

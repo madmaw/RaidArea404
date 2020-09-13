@@ -43,7 +43,6 @@ type Room = {
   entities: Entity[],
   cameraPosition?: Vector3,
   cameraTanFOVOn2?: number,
-  ambientLight?: number,
   adjoiningRooms?: number,
   rx: number,
   ry: number,

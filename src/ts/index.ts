@@ -15,53 +15,58 @@
 d.width = CONST_BADGE_CANVAS_DIMENSION;
 d.height = CONST_BADGE_CANVAS_DIMENSION;
 const context = d.getContext('2d');
-const badgeColors: string[] = ['', 'red'];
 const badgeDefinitions: ([number, number] | [number])[] = [
   // big eye
   //[0x2B24],
-  [0x25C6],
-  // 0-9A-Z, punctuation
-  [45, 46],
-  // grimace
-  [0x2313],
-  // smile/sad
-  [0x2322, 2],
-  // smile 2
-  [0x203F],
+  //[0x25C6],
+  [0x1F536],
   // eye 1
   [0xB0],
   // eye 2
   [0x2022],
   // eye 3
   [0x1D54],
+  // grimace
+  [0x2313],
+  // smile/sad
+  [0x2322, 2],
+  // smile 2
+  [0x203F],
+  // playing cards
+  [0x265F, 9],
+  // 0-9A-Z, punctuation
+  [45, 46],
+  // warning sign, lightning bolt gender icons
+  [0x26A0, 8],
   // emoji faces
   [0x1F600, 69],
   // animals
-  [0x1F400, 59],
+  [0x1F403, 58],
   // food
-  [0x1F332, 34],
+  [0x1F33F, 50],
   // ghosts and shit
   [0x1F479, 8],
 ];
 let badgeCount = 0;
-context.font = `${CONST_BADGE_DIMENSION}px system-ui`;
+if (FLAG_SCALE_BADGES) {
+  context.scale(CONST_BADGE_DIMENSION/10, CONST_BADGE_DIMENSION/10);
+} else {
+  context.font = `${CONST_BADGE_DIMENSION}px serif`;
+}
 context.textAlign = 'center';
-badgeColors.map(textColor => {
-  context.fillStyle = textColor;
-  badgeDefinitions.map(([codePoint, count]) => {
-    for (let k=0; k<(count||1); k++) {
-      const char = String.fromCodePoint(codePoint + k);
-      if (FLAG_PRINT_BADGES) {
-        console.log(badgeCount, char);
-      }
-      context.fillText(
-        char,
-        (badgeCount%CONST_BADGE_CHARACTERS_PER_ROW + .5)*CONST_BADGE_DIMENSION,
-        ((badgeCount/CONST_BADGE_CHARACTERS_PER_ROW|0)+.85)*CONST_BADGE_DIMENSION
-      );
-      badgeCount++;
+badgeDefinitions.map(([codePoint, count]) => {
+  for (let k=0; k<(count||1); k++) {
+    const char = String.fromCodePoint(codePoint + k);
+    if (FLAG_PRINT_BADGES) {
+      console.log(badgeCount, char);
     }
-  });
+    context.fillText(
+      char,
+      (badgeCount%CONST_BADGE_CHARACTERS_PER_ROW + .5)*(FLAG_SCALE_BADGES?10:CONST_BADGE_DIMENSION),
+      ((badgeCount/CONST_BADGE_CHARACTERS_PER_ROW|0)+.85)*(FLAG_SCALE_BADGES?10:CONST_BADGE_DIMENSION)
+    );
+    badgeCount++;
+  }
 });
 
 i.onload = () => {
@@ -93,10 +98,10 @@ i.onload = () => {
     context.font = '1px serif';
     context.textAlign = 'center';
     context.lineJoin = 'round'
-    modelsFaces.forEach((modelFaces, modelId) => {
+    modelsFaces.map((modelFaces, modelId) => {
       const model = models[modelId];
 
-      modelFaces.forEach((modelFacePerimeters, faceId) => {
+      modelFaces.map((modelFacePerimeters, faceId) => {
         context.strokeStyle = '#f5f';
         const rect = model[faceId];
 
@@ -110,11 +115,11 @@ i.onload = () => {
                 const getAverageDepth = (p: PerimeterPoint[]) => p.reduce((c, p) => c + p.pos[2], 0)/p.length;
                 return getAverageDepth(p2) - getAverageDepth(p1);
               })
-              .forEach(perimeter => {
+              .map(perimeter => {
                 context.beginPath();
                 let totalZ = 0;
                 let countZ = 0;
-                perimeter.forEach(({ pos: [x, y, z], textureCoordinateOriginal }, i) => {
+                perimeter.map(({ pos: [x, y, z], textureCoordinateOriginal }, i) => {
                   if (i) {
                     context.lineTo(x, y);
                   } else {
@@ -150,7 +155,7 @@ i.onload = () => {
             if (perimeter && rect) {
               const [ox, oy, ow, oh] = rect;
               context.beginPath();
-              perimeter.forEach(({ pos: [x, y], textureCoordinate: [tx, ty] }, i) => {
+              perimeter.map(({ pos: [x, y], textureCoordinate: [tx, ty] }, i) => {
                 context.save();
                 context.translate(ox + ow/2, oy + oh/2);
                 if (i) {
@@ -175,13 +180,13 @@ i.onload = () => {
               context.strokeStyle = '#0f0';
               const [ox, oy, ow, oh] = rect;
 
-              perimeter.forEach(({ pos: [x, y], textureCoordinate: [tx, ty] }, i) => {
+              perimeter.map(({ pos: [x, y], textureCoordinate: [tx, ty] }, i) => {
                 context.beginPath();
                 context.moveTo(ox + ow/2 + x, oy + oh/2 + y);
                 context.lineTo(tx * imageWidth, ty * imageWidth);
                 context.stroke();
                 context.beginPath();
-                context.arc(tx * imageWidth, ty * imageWidth, 6/scale, 0, Math.PI * 2);
+                context.arc(tx * imageWidth, ty * imageWidth, 6/scale, 0, mathPI * 2);
                 context.stroke();
               });
             }
@@ -242,14 +247,16 @@ i.onload = () => {
     g.width = innerWidth;
     g.height = innerHeight;
   }
-  const gl = FLAG_WEBGL_DISABLE_ANTIALIAS
-    ? g.getContext('webgl', {
-      alpha: false,
-      antialias: false
-    })
-    : g.getContext('webgl', {
-      alpha: false,
-    });
+  const gl: ExtendedWebGLRenderingContext = shortenMethods
+    (FLAG_WEBGL_DISABLE_ANTIALIAS
+        ? g.getContext('webgl', {
+          alpha: false,
+          antialias: false
+        })
+        : g.getContext('webgl', {
+          alpha: false,
+        }));
+
 
   const CONST_GL_RENDERBUFFER = FLAG_USE_GL_CONSTANTS?gl.RENDERBUFFER:0x8D41;
   const CONST_GL_FRAMEBUFFER = FLAG_USE_GL_CONSTANTS?gl.FRAMEBUFFER:0x8D40;
@@ -281,59 +288,60 @@ i.onload = () => {
   const CONST_GL_TEXTURE_MIN_FILTER = FLAG_USE_GL_CONSTANTS ? gl.TEXTURE_MIN_FILTER : 10241;
   const CONST_GL_SRC_ALPHA = FLAG_USE_GL_CONSTANTS ? gl.SRC_ALPHA : 770;
   const CONST_GL_ONE_MINUS_SRC_ALPHA = FLAG_USE_GL_CONSTANTS ? gl.ONE_MINUS_SRC_ALPHA : 771;
+  const CONST_GL_FLOAT = FLAG_USE_GL_CONSTANTS ? gl.FLOAT : 5126;
 
-  gl.blendFunc(CONST_GL_SRC_ALPHA, CONST_GL_ONE_MINUS_SRC_ALPHA);
+  gl['blFuc'](CONST_GL_SRC_ALPHA, CONST_GL_ONE_MINUS_SRC_ALPHA);
 
-  const lightingTexture = gl.createTexture();
-  gl.bindTexture(CONST_GL_TEXTURE_2D, lightingTexture);
-  gl.texImage2D(CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION, 0, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, null);
+  const lightingTexture = gl['crTee']();
+  gl['biTee'](CONST_GL_TEXTURE_2D, lightingTexture);
+  gl['teIm2D'](CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION, 0, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, null);
 
-  const lightingFrameBuffer = gl.createFramebuffer();
+  const lightingFrameBuffer = gl['crFrr']();
 
-  const lightingDepthBuffer = gl.createRenderbuffer();
-  gl.bindRenderbuffer(CONST_GL_RENDERBUFFER, lightingDepthBuffer);
-  gl.renderbufferStorage(CONST_GL_RENDERBUFFER, CONST_GL_DEPTH_COMPONENT16, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
+  const lightingDepthBuffer = gl['crRer']();
+  gl['biRer'](CONST_GL_RENDERBUFFER, lightingDepthBuffer);
+  gl['reSte'](CONST_GL_RENDERBUFFER, CONST_GL_DEPTH_COMPONENT16, CONST_LIGHTING_TEXTURE_DIMENSION, CONST_LIGHTING_TEXTURE_DIMENSION);
 
   mainProgramInputs = initMainProgram(gl, modelsFaces);
 
-  const modelTexture = gl.createTexture();
-  gl.activeTexture(CONST_GL_TEXTURE0);
-  gl.bindTexture(CONST_GL_TEXTURE_2D, modelTexture);
-  gl.texImage2D(CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, i);
+  const modelTexture = gl['crTee']();
+  gl['acTee'](CONST_GL_TEXTURE0);
+  gl['biTee'](CONST_GL_TEXTURE_2D, modelTexture);
+  gl['teIm2D'](CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, i);
   if (FLAG_SQUARE_IMAGE) {
-    gl.generateMipmap(CONST_GL_TEXTURE_2D);
+    gl['geMip'](CONST_GL_TEXTURE_2D);
   } else {
     gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   }
-  gl.texParameteri(CONST_GL_TEXTURE_2D, CONST_GL_TEXTURE_MAG_FILTER, CONST_GL_NEAREST);
-  gl.uniform1i(mainProgramInputs.uniforms[U_MODEL_TEXTURE_INDEX], 0);
+  gl['tePai'](CONST_GL_TEXTURE_2D, CONST_GL_TEXTURE_MAG_FILTER, CONST_GL_NEAREST);
+  gl['un1i'](mainProgramInputs.uniforms[U_MODEL_TEXTURE_INDEX], 0);
 
-  const badgeTexture = gl.createTexture();
-  gl.activeTexture(CONST_GL_TEXTURE2);
-  gl.bindTexture(CONST_GL_TEXTURE_2D, badgeTexture);
-  gl.texImage2D(CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, d);
+  const badgeTexture = gl['crTee']();
+  gl['acTee'](CONST_GL_TEXTURE2);
+  gl['biTee'](CONST_GL_TEXTURE_2D, badgeTexture);
+  gl['teIm2D'](CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, d);
   if (FLAG_SQUARE_IMAGE) {
-    gl.generateMipmap(CONST_GL_TEXTURE_2D);
+    gl['geMip'](CONST_GL_TEXTURE_2D);
   } else {
     gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   }
-  gl.texParameteri(CONST_GL_TEXTURE_2D, CONST_GL_TEXTURE_MIN_FILTER, CONST_GL_NEAREST);
-  gl.uniform1i(mainProgramInputs.uniforms[U_BADGE_TEXTURE_INDEX], 2);
+  gl['tePai'](CONST_GL_TEXTURE_2D, CONST_GL_TEXTURE_MIN_FILTER, CONST_GL_NEAREST);
+  gl['un1i'](mainProgramInputs.uniforms[U_BADGE_TEXTURE_INDEX], 2);
 
-  let shadowGL: WebGLRenderingContext;
+  let shadowGL: ExtendedWebGLRenderingContext;
   let shadowProgramInputs: MainProgramInputs;
   if (FLAG_CANVAS_LIGHTING) {
     l.width = CONST_LIGHTING_TEXTURE_DIMENSION;
     l.height = CONST_LIGHTING_TEXTURE_DIMENSION;
-    shadowGL = l.getContext('webgl');
+    shadowGL = shortenMethods(l.getContext('webgl'));
     shadowProgramInputs = initMainProgram(shadowGL, modelsFaces);
   }
 
   const renderer = (
-    gl: WebGLRenderingContext,
+    gl: ExtendedWebGLRenderingContext,
     inputs: MainProgramInputs,
     world: World,
     rooms: Vector2[],
@@ -355,16 +363,16 @@ i.onload = () => {
     const {
       uniforms,
     } = inputs;
-    gl.uniformMatrix4fv(
+    gl['unMa4fv'](
       uniforms[U_PROJECTION_MATRIX_INDEX],
       false,
       screenProjection,
     );
-    gl.uniform3fv(
+    gl['un3fv'](
       uniforms[U_CAMERA_POSITION_INDEX],
       cameraPosition
     );
-    gl.uniform3fv(
+    gl['un3fv'](
       uniforms[U_LIGHT_INDEX],
       [
         darknessFactor,
@@ -389,11 +397,11 @@ i.onload = () => {
               pos: [0, 0, 0],
             };
       });
-      gl.uniform4fv(
+      gl['un4fv'](
         uniforms[U_LIGHT_POSITIONS_INDEX],
         paddedLights.flatMap(light => light.pos.concat(light.lightIntensity)),
       );
-      gl.uniformMatrix4fv(
+      gl['unMa4fv'](
         uniforms[U_LIGHT_PROJECTIONS_INDEX],
         false,
         paddedLights.flatMap(light =>
@@ -406,7 +414,7 @@ i.onload = () => {
     }
 
     if (FLAG_CULL_FACES) {
-      gl.enable(CONST_GL_CULL_FACE);
+      gl['ene'](CONST_GL_CULL_FACE);
     }
 
     const invisibleEntities: Entity[] = [];
@@ -422,24 +430,24 @@ i.onload = () => {
         cameraPosition
       );
       const d = vectorNLength(normal);
-      const screenHeight = (1/cameraTanFOVOn2 * entity.renderRadius / Math.sqrt(d*d - entity.renderRadius*entity.renderRadius))*entity.renderRadius*Math.max(1, g.width / g.height);
+      const screenHeight = (1/cameraTanFOVOn2 * entity.renderRadius / mathPow(d*d - entity.renderRadius*entity.renderRadius, .5))*entity.renderRadius*mathMax(1, g.width / g.height);
       // const transformation = matrix4Multiply(
-      //   matrix4Rotate(-Math.atan2(normal[2], normal[1]), 1, 0, 0),
-      //   matrix4Rotate(-Math.atan2(vectorNLength(normal.slice(0, 2)), normal[2]), 0, 0, 1),
+      //   matrix4Rotate(-mathAtan2(normal[2], normal[1]), 1, 0, 0),
+      //   matrix4Rotate(-mathAtan2(vectorNLength(normal.slice(0, 2)), normal[2]), 0, 0, 1),
       // );
       // const transformation = matrix4MultiplyStack([
       //   screenProjection,
       //   matrix4Translate(...entityCenterPosition),
-      //   matrix4Rotate(Math.atan2(normal[1], normal[0]), 0, 0, 1),
-      //   matrix4Rotate(Math.atan2(normal[2], vectorNLength(normal.slice(0, 2))), 0, 1, 0),
+      //   matrix4Rotate(mathAtan2(normal[1], normal[0]), 0, 0, 1),
+      //   matrix4Rotate(mathAtan2(normal[2], vectorNLength(normal.slice(0, 2))), 0, 1, 0),
       // ]);
       const screenPosition = vector3TransformMatrix4(screenProjection, ...entity.pos);
       const screenLength = vectorNLength(screenPosition.slice(0, 2));
 
-      if (screenPosition[2] > -entity.renderRadius
-          && !screenPosition.some(v => Math.abs(v)>(1+screenHeight)*Math.min(Math.max(1, screenLength), 1.5))
+      if ((!FLAG_RENDER_BEHIND_CULLING || (screenPosition[2] > -entity.renderRadius))
+          && (!FLAG_RENDER_FRUSTUM_CULLING || !screenPosition.some(v => mathAbs(v)>(1+screenHeight)*mathMin(mathMax(1, screenLength), 1.5)))
+          && (!FLAG_RENDER_RADIUS_CULLING || d - entity.renderRadius < maxCameraDistance)
           && (!filter || filter(entity))
-          && d - entity.renderRadius < maxCameraDistance
       ) {
         // no invisible entities for shadow generation
         if (!entity.invisible || !lights) {
@@ -466,8 +474,8 @@ i.onload = () => {
     });
 
     if (lights) {
-      gl.enable(CONST_GL_BLEND);
-      gl.depthMask(false);
+      gl['ene'](CONST_GL_BLEND);
+      gl['deMak'](false);
       // if (FLAG_CULL_FACES) {
       //   gl.disable(gl.CULL_FACE);
       // }
@@ -499,13 +507,13 @@ i.onload = () => {
           renderBackFaces
         );
       });
-      gl.disable(CONST_GL_BLEND);
-      gl.depthMask(true);
+      gl['die'](CONST_GL_BLEND);
+      gl['deMak'](true);
     }
   }
 
   const bodyPartRenderer = (
-    gl: WebGLRenderingContext,
+    gl: ExtendedWebGLRenderingContext,
     inputs: MainProgramInputs,
     part: BodyPart,
     transform: Matrix4,
@@ -530,13 +538,13 @@ i.onload = () => {
     if (FLAG_CULL_FACES) {
       renderBackFaces = renderBackFaces && !part.flipY || !renderBackFaces && part.flipY;
       if (renderBackFaces) {
-        gl.cullFace(CONST_GL_FRONT);
+        gl['cuFae'](CONST_GL_FRONT);
       } else {
-        gl.cullFace(CONST_GL_BACK);
+        gl['cuFae'](CONST_GL_BACK);
       }
     }
 
-    gl.uniformMatrix4fv(
+    gl['unMa4fv'](
       uniforms[U_MODEL_VIEW_MATRIX_INDEX],
       false,
       m,
@@ -551,58 +559,58 @@ i.onload = () => {
     } = modelBuffers[part.modelId];
 
     // positions
-    gl.bindBuffer(CONST_GL_ARRAY_BUFFER, vertexBuffer);
-    gl.vertexAttribPointer(
+    gl['biBur'](CONST_GL_ARRAY_BUFFER, vertexBuffer);
+    gl['veAtPor'](
       attributes[A_VERTEX_POSITION_INDEX],
       3,
-      gl.FLOAT,
+      CONST_GL_FLOAT,
       false,
       0,
       0
     );
-    gl.enableVertexAttribArray(attributes[A_VERTEX_POSITION_INDEX]);
+    gl['enVeAtAry'](attributes[A_VERTEX_POSITION_INDEX]);
 
     // texture coordinates
-    gl.bindBuffer(CONST_GL_ARRAY_BUFFER, textureCoordinateBuffer);
-    gl.vertexAttribPointer(
+    gl['biBur'](CONST_GL_ARRAY_BUFFER, textureCoordinateBuffer);
+    gl['veAtPor'](
       attributes[A_TEXTURE_COORDINATE_INDEX],
       2,
-      gl.FLOAT,
+      CONST_GL_FLOAT,
       false,
       0,
       0
     );
-    gl.enableVertexAttribArray(attributes[A_TEXTURE_COORDINATE_INDEX]);
+    gl['enVeAtAry'](attributes[A_TEXTURE_COORDINATE_INDEX]);
 
     // normals
-    gl.bindBuffer(CONST_GL_ARRAY_BUFFER, surfaceNormalBuffer);
-    gl.vertexAttribPointer(
+    gl['biBur'](CONST_GL_ARRAY_BUFFER, surfaceNormalBuffer);
+    gl['veAtPor'](
       attributes[A_SURFACE_NORMAL_INDEX],
       3,
-      gl.FLOAT,
+      CONST_GL_FLOAT,
       false,
       0,
       0
     );
-    gl.enableVertexAttribArray(attributes[A_SURFACE_NORMAL_INDEX]);
+    gl['enVeAtAry'](attributes[A_SURFACE_NORMAL_INDEX]);
 
     const paletteIndices = part.paletteIndices || [0, 1, 2, 3];
-    gl.uniform4fv(
+    gl['un4fv'](
       inputs.uniforms[U_PALETTE_INDEX],
       new Array(CONST_MAX_PALETTE).fill(0).flatMap((_, i) => palette[paletteIndices[i%paletteIndices.length]%palette.length])
     );
 
     const badges = partBadges[part.id];
 
-    gl.uniform4fv(
+    gl['un4fv'](
       inputs.uniforms[U_BADGES_INDEX],
       new Array(CONST_MAX_BADGES).fill(0).flatMap((_, i) => badges && badges[i] || [0, 0, 0, 0]),
     );
 
     // indices
-    gl.bindBuffer(CONST_GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl['biBur'](CONST_GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
 
-    gl.drawElements(CONST_GL_TRIANGLES, indexCount, CONST_GL_UNSIGNED_SHORT, 0);
+    gl['drEls'](CONST_GL_TRIANGLES, indexCount, CONST_GL_UNSIGNED_SHORT, 0);
     // closure compiler doesn't like part.children?.map
     part.childParts && part.childParts.map(child => {
       bodyPartRenderer(gl, inputs, child, m, partTransforms, partBadges, palette, renderBackFaces);
@@ -642,7 +650,6 @@ i.onload = () => {
   roomDefinitions.map((row, rx) =>
     row.map((definition, ry) => {
       const room = rooms[rx][ry];
-      room.ambientLight = definition.ambientLight || 0;
       room.adjoiningRooms = definition.adjoiningRooms || 0;
       const legend = globalLegend;
       const floorAndCeilingFactory = globalFloorAndCeilingFactory;
@@ -676,7 +683,7 @@ i.onload = () => {
   let then = 0;
   const update = (now: number) => {
     requestAnimationFrame(update);
-    const diff = CONST_MAX_DELTA ? Math.min(CONST_MAX_DELTA, now - then) : now - then;
+    const diff = CONST_MAX_DELTA ? mathMin(CONST_MAX_DELTA, now - then) : now - then;
     if (FLAG_SHOW_FPS && !FLAG_CANVAS_LIGHTING) {
       const thenSeconds = then/1000 | 0;
       const nowSeconds = now/1000 | 0;
@@ -699,10 +706,10 @@ i.onload = () => {
     const cameraPosition = room.cameraPosition;
     const cameraTanFOVOn2 = room.cameraTanFOVOn2 || CONST_DEFAULT_TAN_FOV_ON_2;
     const cameraDelta = vectorNSubtract(world.player.pos, cameraPosition);
-    const cameraZRotation = Math.atan2(cameraDelta[1], cameraDelta[0]);
+    const cameraZRotation = mathAtan2(cameraDelta[1], cameraDelta[0]);
     const cameraDistance = vectorNLength(cameraDelta.slice(0, 2).concat(0));
-    const cameraYRotation = Math.atan2(cameraDistance, -cameraDelta[2] - world.player.depthZ);
-    //const cameraXRotation = Math.PI/2;
+    const cameraYRotation = mathAtan2(cameraDistance, -cameraDelta[2] - world.player.depthZ);
+    //const cameraXRotation = mathPI/2;
 
     const aspect = g.width / g.height;
     const zNear = .1;
@@ -727,26 +734,26 @@ i.onload = () => {
         })
         .slice(0, CONST_MAX_LIGHTS);
 
-    gl.activeTexture(CONST_GL_TEXTURE1);
-    gl.bindTexture(CONST_GL_TEXTURE_2D, lightingTexture);
+    gl['acTee'](CONST_GL_TEXTURE1);
+    gl['biTee'](CONST_GL_TEXTURE_2D, lightingTexture);
 
     if(FLAG_CANVAS_LIGHTING) {
       shadowGL.enable(CONST_GL_DEPTH_TEST);
       shadowGL.clear(CONST_GL_COLOR_AND_DEPTH_BUFFER_BIT);
     } else {
 
-      gl.bindFramebuffer(CONST_GL_FRAMEBUFFER, lightingFrameBuffer);
-      gl.framebufferTexture2D(CONST_GL_FRAMEBUFFER, CONST_GL_COLOR_ATTACHMENT0, CONST_GL_TEXTURE_2D, lightingTexture, 0);
+      gl['biFrr'](CONST_GL_FRAMEBUFFER, lightingFrameBuffer);
+      gl['frTe2D'](CONST_GL_FRAMEBUFFER, CONST_GL_COLOR_ATTACHMENT0, CONST_GL_TEXTURE_2D, lightingTexture, 0);
 
-      gl.bindRenderbuffer(CONST_GL_RENDERBUFFER, lightingDepthBuffer);
-      gl.framebufferRenderbuffer(CONST_GL_FRAMEBUFFER, CONST_GL_DEPTH_ATTACHMENT, CONST_GL_RENDERBUFFER, lightingDepthBuffer);
+      gl['biRer'](CONST_GL_RENDERBUFFER, lightingDepthBuffer);
+      gl['frRer'](CONST_GL_FRAMEBUFFER, CONST_GL_DEPTH_ATTACHMENT, CONST_GL_RENDERBUFFER, lightingDepthBuffer);
 
-      gl.enable(CONST_GL_DEPTH_TEST);
-      gl.disable(CONST_GL_BLEND);
-      gl.clear(CONST_GL_COLOR_AND_DEPTH_BUFFER_BIT);
+      gl['ene'](CONST_GL_DEPTH_TEST);
+      gl['die'](CONST_GL_BLEND);
+      gl['clr'](CONST_GL_COLOR_AND_DEPTH_BUFFER_BIT);
 
       // put something else in the active texture (texture1) so we don't attempt to read and write to the same texture
-      gl.bindTexture(CONST_GL_TEXTURE_2D, modelTexture);
+      gl['biTee'](CONST_GL_TEXTURE_2D, modelTexture);
     }
 
     litEntities.map((litEntity, i) => {
@@ -760,7 +767,7 @@ i.onload = () => {
       const shadowFilter = (e: Entity) => e != litEntity && !(e.invisible < 0);
 
       if (FLAG_CANVAS_LIGHTING) {
-        shadowGL.viewport(
+        shadowGL['vit'](
           (i%CONST_LIGHTING_GRID_DIMENSION)*CONST_LIGHTING_VIEWPORT_DIMENSION,
           CONST_LIGHTING_TEXTURE_DIMENSION - (i/CONST_LIGHTING_GRID_DIMENSION|0 + 1)*CONST_LIGHTING_VIEWPORT_DIMENSION,
           CONST_LIGHTING_VIEWPORT_DIMENSION,
@@ -783,7 +790,7 @@ i.onload = () => {
           1
         );
       } else {
-        gl.viewport(
+        gl['vit'](
           (i%CONST_LIGHTING_GRID_DIMENSION)*CONST_LIGHTING_VIEWPORT_DIMENSION,
           (i/CONST_LIGHTING_GRID_DIMENSION|0)*CONST_LIGHTING_VIEWPORT_DIMENSION,
           CONST_LIGHTING_VIEWPORT_DIMENSION,
@@ -807,44 +814,44 @@ i.onload = () => {
 
       }
     });
-    gl.uniform1i(
+    gl['un1i'](
       mainProgramInputs.uniforms[U_LIGHT_TEXTURES_INDEX],
       1,
     );
     if (FLAG_CANVAS_LIGHTING) {
-      gl.texImage2D(CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, l);
+      gl['teIm2D'](CONST_GL_TEXTURE_2D, 0, CONST_GL_RGBA, CONST_GL_RGBA, CONST_GL_UNSIGNED_BYTE, l);
       if (FLAG_SQUARE_IMAGE) {
         // should always be square
-        gl.generateMipmap(CONST_GL_TEXTURE_2D);
+        gl['geMip'](CONST_GL_TEXTURE_2D);
       } else {
         gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       }
     } else {
-      gl.bindTexture(CONST_GL_TEXTURE_2D, lightingTexture);
+      gl['biTee'](CONST_GL_TEXTURE_2D, lightingTexture);
       if (FLAG_SQUARE_IMAGE) {
         // should always be square
-        gl.generateMipmap(CONST_GL_TEXTURE_2D);
+        gl['geMip'](CONST_GL_TEXTURE_2D);
       } else {
         gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
         gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(CONST_GL_TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       }
-      gl.texParameteri(CONST_GL_TEXTURE_2D, CONST_GL_TEXTURE_MAG_FILTER, CONST_GL_NEAREST);
+      gl['tePai'](CONST_GL_TEXTURE_2D, CONST_GL_TEXTURE_MAG_FILTER, CONST_GL_NEAREST);
 
       // gl.activeTexture(gl.TEXTURE0);
       // gl.bindTexture(gl.TEXTURE_2D, lightingTexture);
 
       // switch back to rendering to canvas
-      gl.bindFramebuffer(CONST_GL_FRAMEBUFFER, null);
-      gl.viewport(0, 0, g.width, g.height);
+      gl['biFrr'](CONST_GL_FRAMEBUFFER, null);
+      gl['vit'](0, 0, g.width, g.height);
     }
 
-    gl.enable(CONST_GL_DEPTH_TEST);
-    gl.clear(CONST_GL_COLOR_AND_DEPTH_BUFFER_BIT);
+    gl['ene'](CONST_GL_DEPTH_TEST);
+    gl['clr'](CONST_GL_COLOR_AND_DEPTH_BUFFER_BIT);
 
-    const deadness = Math.pow((world.player.deadness || 0)/CONST_MAX_DEADNESS, 3);
+    const deadness = mathPow((world.player.deadness || 0)/CONST_MAX_DEADNESS, 3);
 
     renderer(
       gl,
@@ -855,12 +862,12 @@ i.onload = () => {
       cameraProjection,
       cameraTanFOVOn2,
       CONST_MAX_VIEW_DISTANCE,
-      room.ambientLight - deadness * 3,
-      4*Math.abs(deadness),
+      -.05-deadness * 3,
+      4*mathAbs(deadness),
       litEntities,
     );
 
-    gl.bindTexture(CONST_GL_TEXTURE_2D, modelTexture);
+    gl['biTee'](CONST_GL_TEXTURE_2D, modelTexture);
 
   };
   update(0);

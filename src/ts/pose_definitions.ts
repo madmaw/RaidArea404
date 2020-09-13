@@ -1,3 +1,5 @@
+///<reference path="hax.ts"/>
+
 const PART_ID_TORSO = 10;
 const PART_ID_HEAD = 11;
 const PART_ID_LEFT_UPPER_ARM = 1;
@@ -9,10 +11,10 @@ const PART_ID_LEFT_LOWER_LEG = 4;
 const PART_ID_RIGHT_UPPER_LEG = -3;
 const PART_ID_RIGHT_LOWER_LEG = -4;
 
-function reversePose(pose: KeyFrame) {
+const reversePose = (pose: KeyFrame) => {
   const result: KeyFrame = {};
   for (let partId in pose) {
-    const multiplier = Math.abs(partId as any) < 9
+    const multiplier = mathAbs(partId as any) < 9
         ? -1
         : 1;
     const oppositePartId = multiplier * (partId as any);
@@ -21,7 +23,7 @@ function reversePose(pose: KeyFrame) {
   return result;
 }
 
-function makeWalkCycle(scale: number) {
+const makeWalkCycle = (scale: number) => {
   const walk1: KeyFrame = {
     [PART_ID_LEFT_UPPER_LEG]: [0, CONST_PI_ON_15_2DP * scale, 0],
     [PART_ID_LEFT_LOWER_LEG]: [CONST_PI_ON_6_1DP * scale, 0, 0],
@@ -102,10 +104,10 @@ const chokerKeyFrame1: KeyFrame = {
   [PART_ID_LEFT_LOWER_ARM]: [CONST_PI_ON_6_1DP, CONST_PI_ON_9_1DP, CONST_PI_ON_9_1DP],
   [PART_ID_RIGHT_UPPER_ARM]: [-CONST_PI_ON_4_1DP, -CONST_PI_ON_2_5_1DP, 0],
   [PART_ID_RIGHT_LOWER_ARM]: [CONST_PI_ON_5_1DP, CONST_PI_ON_9_1DP, CONST_PI_ON_9_1DP],
-  // [PART_ID_LEFT_UPPER_LEG]: [Math.PI/20, Math.PI/20, 0],
-  // [PART_ID_RIGHT_UPPER_LEG]: [Math.PI/20, -Math.PI/20, 0],
-  // [PART_ID_RIGHT_LOWER_LEG]: [-Math.PI/20, 0, 0],
-  // [PART_ID_LEFT_LOWER_LEG]: [Math.PI/9, 0, 0],
+  // [PART_ID_LEFT_UPPER_LEG]: [mathPI/20, mathPI/20, 0],
+  // [PART_ID_RIGHT_UPPER_LEG]: [mathPI/20, -mathPI/20, 0],
+  // [PART_ID_RIGHT_LOWER_LEG]: [-mathPI/20, 0, 0],
+  // [PART_ID_LEFT_LOWER_LEG]: [mathPI/9, 0, 0],
 
 };
 const HUMAN_CHOKER_POSE: KeyFrame[] = [

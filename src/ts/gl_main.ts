@@ -102,13 +102,13 @@ const MAIN_VS =
 `varying vec4 ${V_ORIGINAL_POSITION};`+
 `varying vec3 ${V_ORIGINAL_SURFACE_NORMAL};`+
 
-`void main() {`+
-  `${V_POSITION}=${U_MODEL_VIEW_MATRIX} * ${A_VERTEX_POSITION};`+
+`void main(){`+
+  `${V_POSITION}=${U_MODEL_VIEW_MATRIX}*${A_VERTEX_POSITION};`+
   `${V_TEXURE_COORDINATE}=${A_TEXTURE_COORDINATE};`+
   `${V_ORIGINAL_POSITION}=${A_VERTEX_POSITION};`+
   `${V_ORIGINAL_SURFACE_NORMAL}=${A_SURFACE_NORMAL};`+
-  `${V_SURFACE_NORMAL}=((${U_MODEL_VIEW_MATRIX} * vec4(${A_SURFACE_NORMAL},.0)) - (${U_MODEL_VIEW_MATRIX} * vec4(.0))).xyz;`+
-  `gl_Position=${U_PROJECTION_MATRIX} * ${V_POSITION};`+
+  `${V_SURFACE_NORMAL}=((${U_MODEL_VIEW_MATRIX}*vec4(${A_SURFACE_NORMAL},.0))-(${U_MODEL_VIEW_MATRIX} * vec4(.0))).xyz;`+
+  `gl_Position=${U_PROJECTION_MATRIX}*${V_POSITION};`+
 `}`;
 
 const MAIN_FS =
@@ -130,53 +130,56 @@ const MAIN_FS =
 `varying vec4 ${V_ORIGINAL_POSITION};`+
 `varying vec3 ${V_ORIGINAL_SURFACE_NORMAL};`+
 
-`void main() {
-  vec3 ${L_CAMERA_DELTA}=${U_CAMERA_POSITION}-${V_POSITION}.xyz;
-  if(${U_LIGHT}.y>.0){
-    vec4 ${L_COLOR}=texture2D(${U_MODEL_TEXTURE}, ${V_TEXURE_COORDINATE});
-    float ${L_LIGHT}=${L_COLOR}.r;
-    for(int ${L_PALETTE_NDX}=0;${L_PALETTE_NDX}<${CONST_MAX_PALETTE};${L_PALETTE_NDX}++){
-      if(float(${L_PALETTE_NDX})<=${L_LIGHT}*${CONST_MAX_PALETTE-1}.1){
-        ${L_COLOR}=${U_PALETTE}[${L_PALETTE_NDX}];
-      }
-    }
-    vec4 ${L_TEMP_COLOR}=${L_COLOR};
-    if(dot(${L_CAMERA_DELTA},${V_SURFACE_NORMAL})>.0) {
-      for(int ${L_BADGE_NDX}=0;${L_BADGE_NDX}<${CONST_MAX_BADGES};${L_BADGE_NDX}++) {
-        vec4 ${L_BADGE}=${U_BADGES}[${L_BADGE_NDX}];
-        if(abs(${L_BADGE}.z-${V_ORIGINAL_POSITION}.z)<abs(${L_BADGE}.x)&&(cos(${L_BADGE}.y-atan(${V_ORIGINAL_SURFACE_NORMAL}.y,${V_ORIGINAL_SURFACE_NORMAL}.x))>.0)) {
-          float ${L_Y}=(mat2(cos(-${L_BADGE}.y),-sin(-${L_BADGE}.y),sin(-${L_BADGE}.y),cos(-${L_BADGE}.y))*${V_ORIGINAL_POSITION}.xy).y/${L_BADGE}.x;
-          if(abs(${L_Y})<1.0){
-            vec4 ${L_BADGE_COLOR}=texture2D(
-              ${U_BADGE_TEXTURE},
-              vec2(
-                ${L_Y}*.5/${CONST_BADGE_CHARACTERS_PER_ROW}.0+(mod(abs(${L_BADGE}.w),${CONST_BADGE_CHARACTERS_PER_ROW}.0))/${CONST_BADGE_CHARACTERS_PER_ROW}.0-${1-.5/CONST_BADGE_CHARACTERS_PER_ROW},
-                sign(${L_BADGE}.w)*(${L_BADGE}.z-${V_ORIGINAL_POSITION}.z)*.5/abs(${L_BADGE}.x*${CONST_BADGE_CHARACTERS_PER_ROW}.0)+floor(abs(${L_BADGE}.w)/${CONST_BADGE_CHARACTERS_PER_ROW}.0)/${CONST_BADGE_CHARACTERS_PER_ROW}.0-${1-.5/CONST_BADGE_CHARACTERS_PER_ROW}
-              )
-            );
-            ${L_COLOR}=mix(${L_COLOR},${L_BADGE_COLOR},${L_BADGE_COLOR}.a);
-          }
-        }
-      }
-    }
-    ${L_LIGHT}=pow(mix(${L_COLOR}.r,max(${L_TEMP_COLOR}.r,${L_TEMP_COLOR}.g),${L_TEMP_COLOR}.a),${U_LIGHT}.x+3.0)+${U_LIGHT}.z;
+`void main(){`+
+  `vec3 ${L_CAMERA_DELTA}=${U_CAMERA_POSITION}-${V_POSITION}.xyz;`+
+  `if(${U_LIGHT}.y>.0){`+
+    `vec4 ${L_COLOR}=texture2D(${U_MODEL_TEXTURE},${V_TEXURE_COORDINATE});`+
+    `float ${L_LIGHT}=${L_COLOR}.r;`+
+    `for(int ${L_PALETTE_NDX}=0;${L_PALETTE_NDX}<${CONST_MAX_PALETTE};${L_PALETTE_NDX}++){`+
+      `if(float(${L_PALETTE_NDX})<=${L_LIGHT}*${CONST_MAX_PALETTE-1}.1){`+
+        `${L_COLOR}=${U_PALETTE}[${L_PALETTE_NDX}];`+
+      `}`+
+    `}`+
+    `vec4 ${L_TEMP_COLOR}=${L_COLOR};`+
+    `if(dot(${L_CAMERA_DELTA},${V_SURFACE_NORMAL})>.0){`+
+      `for(int ${L_BADGE_NDX}=0;${L_BADGE_NDX}<${CONST_MAX_BADGES};${L_BADGE_NDX}++){`+
+        `vec4 ${L_BADGE}=${U_BADGES}[${L_BADGE_NDX}];`+
+        `if(abs(${L_BADGE}.z-${V_ORIGINAL_POSITION}.z)<abs(${L_BADGE}.x)&&(cos(${L_BADGE}.y-atan(${V_ORIGINAL_SURFACE_NORMAL}.y,${V_ORIGINAL_SURFACE_NORMAL}.x))>.0)){`+
+          `float ${L_Y}=(mat2(cos(-${L_BADGE}.y),-sin(-${L_BADGE}.y),sin(-${L_BADGE}.y),cos(-${L_BADGE}.y))*${V_ORIGINAL_POSITION}.xy).y/${L_BADGE}.x;`+
+          `if(abs(${L_Y})<1.0){`+
+            `vec4 ${L_BADGE_COLOR}=texture2D(`+
+              `${U_BADGE_TEXTURE},`+
+              `vec2(`+
+                `${L_Y}*.5/${CONST_BADGE_CHARACTERS_PER_ROW}.0+(mod(${L_BADGE}.w,${CONST_BADGE_CHARACTERS_PER_ROW}.0))/${CONST_BADGE_CHARACTERS_PER_ROW}.0-${1-.5/CONST_BADGE_CHARACTERS_PER_ROW},`+
+                `(${L_BADGE}.z-${V_ORIGINAL_POSITION}.z)*.5/abs(${L_BADGE}.x*${CONST_BADGE_CHARACTERS_PER_ROW}.0)+floor(${L_BADGE}.w/${CONST_BADGE_CHARACTERS_PER_ROW}.0)/${CONST_BADGE_CHARACTERS_PER_ROW}.0-${1-.5/CONST_BADGE_CHARACTERS_PER_ROW}`+
+              `)`+
+            `);`+
+            `${L_COLOR}=mix(${L_COLOR},${L_BADGE_COLOR},${L_BADGE_COLOR}.a);`+
+          `}`+
+        `}`+
+      `}`+
+    `}`+
+    `${L_LIGHT}=pow(mix(${L_COLOR}.r,max(${L_TEMP_COLOR}.r,${L_TEMP_COLOR}.g),${L_TEMP_COLOR}.a),${U_LIGHT}.x+3.0)+${U_LIGHT}.z;`+
 
-    for (int ${L_LIGHT_NDX}=0;${L_LIGHT_NDX}<${CONST_MAX_LIGHTS};${L_LIGHT_NDX}++){
-      vec4 ${L_SHADOW_POSITION}=${U_LIGHT_PROJECTIONS}[${L_LIGHT_NDX}]*(${V_POSITION});
-      vec3 ${L_SHADOW_SCREEN_COORDINATE}=${L_SHADOW_POSITION}.xyz/${L_SHADOW_POSITION}.w;
-      vec3 ${L_LIGHT_DELTA}=(${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}]-${V_POSITION}).xyz;
-      if(length(${L_SHADOW_SCREEN_COORDINATE}.xy)<1.0&&${L_SHADOW_SCREEN_COORDINATE}.z>.0) {
-        float ${L_SHADOW_DISTANCE}=texture2D(${U_LIGHT_TEXTURES},(${L_SHADOW_SCREEN_COORDINATE}.xy+1.0)/${CONST_LIGHTING_GRID_DIMENSION*2}.0+vec2(mod(float(${L_LIGHT_NDX}),${CONST_LIGHTING_GRID_DIMENSION}.0),float(${L_LIGHT_NDX}/${CONST_LIGHTING_GRID_DIMENSION}))/${CONST_LIGHTING_GRID_DIMENSION}.0).a*${CONST_MAX_LIGHT_DISTANCE};
-        if(${L_SHADOW_DISTANCE}+.1>length(${L_LIGHT_DELTA})) {
-          ${L_LIGHT}+=pow(max(1.0-${L_COLOR}.a,dot(normalize(${L_LIGHT_DELTA}),normalize(${V_SURFACE_NORMAL})))*(1.0-pow(length(${L_SHADOW_SCREEN_COORDINATE}.xy),9.9)),2.0)*max(.0, ${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}].w-length(${L_LIGHT_DELTA})/(${CONST_MAX_LIGHT_DISTANCE})*pow(${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}].w,.5));
-        }
-      }
-    }
-    gl_FragColor = vec4(${L_COLOR}.rgb*${L_LIGHT}*pow(max(.0, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_VIEW_DISTANCE}.0),.8),${L_COLOR}.a+(1.0-max(${L_COLOR}.a,${L_COLOR}.b))*(${L_LIGHT}+pow(${U_LIGHT}.x+.6,2.0)));
-  } else {
-    gl_FragColor = vec4(length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});
-  }
-}`;
+    `for (int ${L_LIGHT_NDX}=0;${L_LIGHT_NDX}<${CONST_MAX_LIGHTS};${L_LIGHT_NDX}++){`+
+      `vec4 ${L_SHADOW_POSITION}=${U_LIGHT_PROJECTIONS}[${L_LIGHT_NDX}]*(${V_POSITION});`+
+      `vec3 ${L_SHADOW_SCREEN_COORDINATE}=${L_SHADOW_POSITION}.xyz/${L_SHADOW_POSITION}.w;`+
+      `vec3 ${L_LIGHT_DELTA}=(${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}]-${V_POSITION}).xyz;`+
+      `if(length(${L_SHADOW_SCREEN_COORDINATE}.xy)<1.0&&${L_SHADOW_SCREEN_COORDINATE}.z>.0){`+
+        `float ${L_SHADOW_DISTANCE}=texture2D(${U_LIGHT_TEXTURES},(${L_SHADOW_SCREEN_COORDINATE}.xy+1.0)/${CONST_LIGHTING_GRID_DIMENSION*2}.0+vec2(mod(float(${L_LIGHT_NDX}),${CONST_LIGHTING_GRID_DIMENSION}.0),float(${L_LIGHT_NDX}/${CONST_LIGHTING_GRID_DIMENSION}))/${CONST_LIGHTING_GRID_DIMENSION}.0).a*${CONST_MAX_LIGHT_DISTANCE};`+
+        `if(${L_SHADOW_DISTANCE}+.1>length(${L_LIGHT_DELTA})){`+
+          `${L_LIGHT}+=pow(max(1.0-${L_COLOR}.a,dot(normalize(${L_LIGHT_DELTA}),normalize(${V_SURFACE_NORMAL})))*(1.0-pow(length(${L_SHADOW_SCREEN_COORDINATE}.xy),9.9)),2.0)*max(.0,${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}].w-length(${L_LIGHT_DELTA})/(${CONST_MAX_LIGHT_DISTANCE})*pow(${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}].w,.5));`+
+        `}`+
+      `}`+
+      `if(length(${L_LIGHT_DELTA})<${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}].w){`+
+        `${L_LIGHT}+=pow((${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}].w-length(${L_LIGHT_DELTA}))/${U_LIGHT_POSITIONS}[${L_LIGHT_NDX}].w,2.0);`+
+      `}`+
+    `}`+
+    `gl_FragColor = vec4(${L_COLOR}.rgb*${L_LIGHT}*pow(max(.0, 1.0-length(${L_CAMERA_DELTA})/${CONST_MAX_VIEW_DISTANCE}.0),1.0-${L_LIGHT}),${L_COLOR}.a+(1.0-max(${L_COLOR}.a,${L_COLOR}.b))*(${L_LIGHT}+pow(${U_LIGHT}.x+.6,2.0)));`+
+  `}else{`+
+    `gl_FragColor = vec4(length(${L_CAMERA_DELTA})/${CONST_MAX_LIGHT_DISTANCE});`+
+  `}`+
+`}`;
 
 type MainProgramInputs = {
   uniforms: WebGLUniformLocation[],
@@ -191,15 +194,38 @@ type MainProgramInputs = {
   }[],
 }
 
-const initMainProgram = (gl: WebGLRenderingContext, modelsFaces: PerimeterPoint[][][][]): MainProgramInputs => {
+const initMainProgram = (gl: ExtendedWebGLRenderingContext, modelsFaces: PerimeterPoint[][][][]): MainProgramInputs => {
   const CONST_GL_ELEMENT_ARRAY_BUFFER = FLAG_USE_GL_CONSTANTS?gl.ELEMENT_ARRAY_BUFFER:0x8893;
   const CONST_GL_STATIC_DRAW = FLAG_USE_GL_CONSTANTS ? gl.STATIC_DRAW : 0x88E4;
   const CONST_GL_ARRAY_BUFFER = FLAG_USE_GL_CONSTANTS ? gl.ARRAY_BUFFER : 0x8892;
 
 
-  const main = initShaderProgram(gl, MAIN_VS, MAIN_FS);
-  const attributes = ATTRIBUTE_NAMES.map(name => gl.getAttribLocation(main, name));
-  const uniforms = UNIFORM_NAMES.map(name => gl.getUniformLocation(main, name));
+  const CONST_GL_VERTEX_SHADER = FLAG_USE_GL_CONSTANTS?gl.VERTEX_SHADER:0x8B31;
+  const CONST_GL_LINK_STATUS = FLAG_USE_GL_CONSTANTS?gl.LINK_STATUS:0x8B82;
+
+
+  const vertexShader = loadShader(gl, CONST_GL_VERTEX_SHADER, MAIN_VS);
+  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, MAIN_FS);
+
+  // Create the shader program
+
+  const main = gl['crPrm']();
+  gl['atShr'](main, vertexShader);
+  gl['atShr'](main, fragmentShader);
+  gl['liPrm'](main);
+
+  // If creating the shader program failed, alert
+
+  if (FLAG_SHOW_GL_ERRORS && !gl.getProgramParameter(main, CONST_GL_LINK_STATUS)) {
+    console.error('Unable to initialize the shader program: ', gl.getProgramInfoLog(main));
+    console.log(MAIN_VS);
+    console.log(MAIN_FS);
+    return null;
+  }
+
+
+  const attributes = ATTRIBUTE_NAMES.map(name => gl['geAtLon'](main, name));
+  const uniforms = UNIFORM_NAMES.map(name => gl['geUnLon'](main, name));
 
   const modelBuffers = modelsFaces.map(modelFaces => {
     let vertexData: number[] = [];
@@ -235,7 +261,7 @@ const initMainProgram = (gl: WebGLRenderingContext, modelsFaces: PerimeterPoint[
         poly.map(p => {
           indices.push(indices.length);
           const point = vector3TransformMatrix4(transform, ...p.pos);
-          halfBounds = halfBounds.map((v, i) => Math.max(point[i], v)) as Vector3;
+          halfBounds = halfBounds.map((v, i) => mathMax(point[i], v)) as Vector3;
           vertexData.push(...point);
           // texture coordinates should all be non-null at this point
           //let textureCoordinate = ;
@@ -255,33 +281,33 @@ const initMainProgram = (gl: WebGLRenderingContext, modelsFaces: PerimeterPoint[
 
     // console.log(vertexData, indices, textureCoordinates);
 
-    const vertexBuffer = gl.createBuffer();
-    gl.bindBuffer(CONST_GL_ARRAY_BUFFER, vertexBuffer);
-    gl.bufferData(
+    const vertexBuffer = gl['crBur']();
+    gl['biBur'](CONST_GL_ARRAY_BUFFER, vertexBuffer);
+    gl['buDaa'](
       CONST_GL_ARRAY_BUFFER,
       new Float32Array(vertexData),
       CONST_GL_STATIC_DRAW
     );
 
-    const textureCoordinateBuffer = gl.createBuffer();
-    gl.bindBuffer(CONST_GL_ARRAY_BUFFER, textureCoordinateBuffer);
-    gl.bufferData(
+    const textureCoordinateBuffer = gl['crBur']();
+    gl['biBur'](CONST_GL_ARRAY_BUFFER, textureCoordinateBuffer);
+    gl['buDaa'](
       CONST_GL_ARRAY_BUFFER,
       new Float32Array(textureCoordinates),
       CONST_GL_STATIC_DRAW
     );
 
-    const surfaceNormalBuffer = gl.createBuffer();
-    gl.bindBuffer(CONST_GL_ARRAY_BUFFER, surfaceNormalBuffer);
-    gl.bufferData(
+    const surfaceNormalBuffer = gl['crBur']();
+    gl['biBur'](CONST_GL_ARRAY_BUFFER, surfaceNormalBuffer);
+    gl['buDaa'](
       CONST_GL_ARRAY_BUFFER,
       new Float32Array(surfaceNormals),
       CONST_GL_STATIC_DRAW,
     );
 
-    const indexBuffer = gl.createBuffer();
-    gl.bindBuffer(CONST_GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.bufferData(CONST_GL_ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), CONST_GL_STATIC_DRAW);
+    const indexBuffer = gl['crBur']();
+    gl['biBur'](CONST_GL_ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl['buDaa'](CONST_GL_ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), CONST_GL_STATIC_DRAW);
 
     return {
       vertexBuffer,
@@ -292,7 +318,7 @@ const initMainProgram = (gl: WebGLRenderingContext, modelsFaces: PerimeterPoint[
       indexCount: indices.length,
     };
   });
-  gl.useProgram(main);
+  gl['usPrm'](main);
 
   return {
     uniforms,

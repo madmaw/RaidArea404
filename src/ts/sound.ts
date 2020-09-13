@@ -1,6 +1,6 @@
 type SoundEffect3D = (position: Vector3, intensity: number) => void;
 
-function audioDisconnect(nodes: AudioNode[]) {
+const audioDisconnect = (nodes: AudioNode[]) => {
   for( let node of nodes ) {
       if( node ) {
           node.disconnect();
@@ -8,22 +8,21 @@ function audioDisconnect(nodes: AudioNode[]) {
   }
 }
 
-function audioDisconnectSingleNode(node: AudioNode) {
+const audioDisconnectSingleNode = (node: AudioNode) => {
   if( node ) {
       node.disconnect();
   }
 }
 
-let audioContext: AudioContext;
-function lazySoundEffect(f: (audioContext: AudioContext) => SoundEffect3D): SoundEffect3D {
+let audioContext: ExtendedAudioContext;
+const lazySoundEffect = (f: (audioContext: ExtendedAudioContext) => SoundEffect3D): SoundEffect3D => {
   let soundEffect: SoundEffect3D;
   return (position: Vector3, intensity: number) => {
     if (!audioContext) {
-      if( FLAG_CHECK_WEBKIT_AUDIO_CONTEXT && window["webkitAudioContext"] ) {
-        audioContext = new window["webkitAudioContext"]();
-      } else {
-        audioContext = new AudioContext();
-      }
+      audioContext = shortenMethods(FLAG_CHECK_WEBKIT_AUDIO_CONTEXT && window["webkitAudioContext"]
+          ? new window["webkitAudioContext"]()
+          : new AudioContext()
+      );
     }
     if (!soundEffect) {
       soundEffect = f(audioContext);
@@ -32,33 +31,21 @@ function lazySoundEffect(f: (audioContext: AudioContext) => SoundEffect3D): Soun
   }
 }
 
-function linearRampGain(gain: GainNode, now: number, attackVolume: number, sustainVolume, attackSeconds: number, decaySeconds: number, sustainSeconds:number, durationSeconds: number) {
-  gain.gain.value = 0;
-  gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(attackVolume, now + attackSeconds);
-  gain.gain.linearRampToValueAtTime(sustainVolume, now + decaySeconds);
-  if (sustainSeconds) {
-      gain.gain.linearRampToValueAtTime(sustainVolume, now + sustainSeconds);
-  }
-  gain.gain.linearRampToValueAtTime(0, now + durationSeconds);
-
-}
-
-function webAudioBoomSoundEffectFactory(
-  audioContext: AudioContext,
+const webAudioBoomSoundEffectFactory = (
+  audioContext: ExtendedAudioContext,
   durationSeconds: number,
   attackSeconds: number,
   filterFrequency: number,
   attackVolume: number,
   sustainVolume: number
-): SoundEffect3D {
+): SoundEffect3D => {
   const sampleRate = audioContext.sampleRate;
   let frameCount = durationSeconds * sampleRate | 0;
-  const buffer = audioContext.createBuffer(1, frameCount, sampleRate);
-  const data = buffer.getChannelData(0);
+  const buffer: ExtendedAudioBuffer = shortenMethods(audioContext['crBur'](1, frameCount, sampleRate));
+  const data = buffer['geChDaa'](0);
 
   while (frameCount--) {
-    data[frameCount] = Math.random() * 2 - 1;
+    data[frameCount] = mathRandom() * 2 - 1;
   }
 
   return (position: Vector3, volume: number) => {
@@ -67,21 +54,29 @@ function webAudioBoomSoundEffectFactory(
       volume = 1;
     }
 
-    var staticNode = audioContext.createBufferSource();
+    const staticNode = audioContext['crBuSoe']();
     staticNode.buffer = buffer;
     staticNode.loop = true;
 
-    var filter = audioContext.createBiquadFilter();
+    const filter = audioContext['crBiFir']();
     filter.type = 'lowpass';
     filter.Q.value = 0;
     filter.frequency.value = filterFrequency;
 
     //decay
-    var gain = audioContext.createGain();
-    var decay = durationSeconds * .2;
-    linearRampGain(gain, audioContext.currentTime, attackVolume * volume, sustainVolume * volume, attackSeconds, decay, null, durationSeconds);
+    const gain = audioContext['crGan']();
+    const decaySeconds = durationSeconds * .2;
+    const now = audioContext.currentTime;
+    const gainAudioParam: ExtendedAudioParam = shortenMethods(gain.gain);
 
-    let panner = audioContext.createPanner();
+    gainAudioParam.value = 0;
+    gainAudioParam['seVaAtTie'](0, now);
+    gainAudioParam['liRaToVaAtTime'](attackVolume, now + attackSeconds);
+    gainAudioParam['liRaToVaAtTime'](sustainVolume, now + decaySeconds);
+    gainAudioParam['liRaToVaAtTime'](0, now + durationSeconds);
+
+
+    const panner = audioContext['crPar']();
     panner.refDistance = CONST_MAX_SOUND_RADIUS_SQRT * attackVolume * 9;
     if( FLAG_AUDIO_SET_DISTANCE_MODEL_EXPONENTIAL ) {
       panner.distanceModel = 'exponential';
@@ -97,7 +92,7 @@ function webAudioBoomSoundEffectFactory(
     staticNode.stop(audioContext.currentTime + durationSeconds);
     staticNode.onended = () => {
       if( FLAG_MINIMAL_AUDIO_CLEANUP ) {
-        [panner].map(audioDisconnectSingleNode);
+        panner.disconnect();
       } else {
         [panner, gain, staticNode, filter].map(audioDisconnectSingleNode);
       }
