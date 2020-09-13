@@ -33,7 +33,7 @@ const badgeDefinitions: ([number, number] | [number])[] = [
   // smile 2
   [0x203F],
   // playing cards
-  [0x265F, 9],
+  [0x2660, 8],
   // 0-9A-Z, punctuation
   [45, 46],
   // warning sign, lightning bolt gender icons
@@ -41,7 +41,7 @@ const badgeDefinitions: ([number, number] | [number])[] = [
   // emoji faces
   [0x1F600, 69],
   // animals
-  [0x1F403, 58],
+  [0x1F404, 59],
   // food
   [0x1F33F, 50],
   // ghosts and shit
@@ -675,10 +675,18 @@ i.onload = () => {
 
   let engineState: EngineState = {
     keyboardInputs,
+    //visibleRoom: [0, 0],
   };
 
   let fps: number | undefined;
   let frames = 0;
+
+  const aspect = g.width / g.height;
+  const zNear = .1;
+  const perspectiveProjection = matrix4Multiply(
+    matrix4InfinitePerspective(CONST_DEFAULT_TAN_FOV_ON_2, aspect, zNear),
+    matrix4Rotate(-CONST_PI_ON_2_1DP, 0, 0, 1)
+  );
 
   let then = 0;
   const update = (now: number) => {
@@ -702,23 +710,18 @@ i.onload = () => {
     updater(world, engineState, diff);
 
     const [rx, ry] = getRoom(world.player);
+    //const [rx, ry] = engineState.visibleRoom;
     const room = world.rooms[rx][ry];
     const cameraPosition = room.cameraPosition;
-    const cameraTanFOVOn2 = room.cameraTanFOVOn2 || CONST_DEFAULT_TAN_FOV_ON_2;
+    const cameraTanFOVOn2 = CONST_DEFAULT_TAN_FOV_ON_2;
     const cameraDelta = vectorNSubtract(world.player.pos, cameraPosition);
     const cameraZRotation = mathAtan2(cameraDelta[1], cameraDelta[0]);
     const cameraDistance = vectorNLength(cameraDelta.slice(0, 2).concat(0));
     const cameraYRotation = mathAtan2(cameraDistance, -cameraDelta[2] - world.player.depthZ);
     //const cameraXRotation = mathPI/2;
 
-    const aspect = g.width / g.height;
-    const zNear = .1;
-    const zFar = 99;
     const cameraProjection = matrix4MultiplyStack([
-      //matrix4Perspective(Math.tan(fieldOfView)/2, aspect, zNear, zFar),
-      //matrix4Perspective(cameraTanFOVOn2, aspect, zNear, zFar),
-      matrix4InfinitePerspective(cameraTanFOVOn2, aspect, zNear),
-      matrix4Rotate(-CONST_PI_ON_2_1DP, 0, 0, 1),
+      perspectiveProjection,
       matrix4Rotate(cameraYRotation, 0, 1, 0),
       matrix4Rotate(cameraZRotation, 0, 0, 1),
     ]);

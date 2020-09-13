@@ -5,7 +5,7 @@ const COLOR_METAL_RED: Vector4 = [.6, .4, .4, 1];
 const COLOR_METAL_GREEN: Vector4 = [.4, .6, .4, 1];
 const COLOR_GREY: Vector4 = [.4, .4, .4, 1];
 const COLOR_OFF_WHITE: Vector4 = [.55, .6, .6, 1];
-const COLOR_OFFER_WHITE: Vector4 = [.4, .5, .5, 1];
+const COLOR_OFFEST_WHITE: Vector4 = [.4, .5, .5, 1];
 const COLOR_WHITE: Vector4 = [.7, .7, .7, 1];
 const COLOR_BLACK: Vector4 = [0, 0, .1, 1];
 const COLOR_WALL: Vector4 = [.4, .4, .6, 1];
@@ -15,6 +15,7 @@ const COLOR_GREEN: Vector4 = [0, 1, 0, 1];
 const COLOR_RED: Vector4 = [1, 0, 0, 1];
 const COLOR_ROYAL_BLUE: Vector4 = [.1, .1, .2, 1];
 const COLOR_SKY_BLUE: Vector4 = [.4, .4, .5, 1];
+const COLOR_OFFER_WHITE: Vector4 = [.5, .55, .55, 1];
 
 const convertHSLtoRGB = (h: number, s: number, l: number): Vector4 => {
   if (s) {

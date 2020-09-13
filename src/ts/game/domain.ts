@@ -42,7 +42,6 @@ type Tile = {
 type Room = {
   entities: Entity[],
   cameraPosition?: Vector3,
-  cameraTanFOVOn2?: number,
   adjoiningRooms?: number,
   rx: number,
   ry: number,

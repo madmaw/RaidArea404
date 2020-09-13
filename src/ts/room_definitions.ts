@@ -32,11 +32,10 @@ const makeStaticEntity = (
   dimension: number,
   collisionType: CollisionType,
   alternateAngle: boolean | number,
-  palette?: Vector4[],
+  palette: Vector4[],
   centered?: 0 | 1,
   z?: number
 ): Entity => {
-  palette = palette || new Array(4).fill(0).map((_, i) => new Array(3).fill(i/3).concat(1) as Vector4);
   const rx = cx / CONST_ROOM_DIMENSION | 0;
   const ry = cy / CONST_ROOM_DIMENSION | 0;
 
@@ -128,12 +127,26 @@ const switchFeatureFactory = (world: World, x: number, y: number, alternateAngle
   entity.circuit = circuit;
   if (doorSwitch) {
     entity.badges = {
-      0: [[1, 0, 1, circuit + 8]],
+      0: [[1.4, 0, 2, circuitSymbols[circuit]]],
     };
   }
   world.switches.push(entity);
   addEntity(world, entity);
 }
+
+// fucking emoji card suits are out of order
+const circuitSymbols: number[] = [
+  62, // warning
+  8, // ♠
+  13,// ♥
+  14,// ♦
+  11, // ♣
+  62, // also warning, IDGAF
+  12, // ♤
+  9, // ♡
+  10, // ♢
+  15, // ♧
+];
 
 const lightFeatureFactory = (world: World, x: number, y: number, alternateAngle: boolean | number, char: string) => {
   const circuit = parseInt(char);
@@ -298,7 +311,7 @@ const lightFeatureFactory = (world: World, x: number, y: number, alternateAngle:
           // [1, mathPI*.8, 1, 7],
           // // 4
           // [1, -mathPI*.8, 1, 7]
-          [mathRandom() > .5 ? 0 : 1 + mathRandom(), shirtColor==coatColor ? 0 : CONST_PI_1DP, 1, (36+mathRandom()*219)|0],
+          [mathRandom() > .5 ? 0 : 1 + mathRandom(), shirtColor==coatColor ? 0 : CONST_PI_1DP, 1, (34+mathRandom()*221)|0],
         ]
       },
       zRotation: CONST_PI_ON_2_1DP,
@@ -361,7 +374,7 @@ const doorFactory = (world: World, x: number, y: number, alternateAngle: boolean
     door.invisible = 1;
   }
   door.reversed = reversed;
-  const charIndex = circuit + (reversed)*4 + 8;
+  const charIndex = circuitSymbols[circuit + (reversed)*5];
   door.badges = {
     0: [[.8, 0, -3.1, charIndex], [.8, CONST_PI_1DP, -3.1, charIndex]],
   };
@@ -387,8 +400,8 @@ const globalFloorAndCeilingFactory = (world: World, x, y, alternateAngle, origin
     const ceilingPalette: Vector4[] = [
       COLOR_METAL,
       COLOR_METAL,
-      COLOR_OFF_WHITE,
-      COLOR_OFF_WHITE,
+      COLOR_OFFER_WHITE,
+      COLOR_OFFER_WHITE,
     ];
     const lightIndex = parseInt(originalChar);
     const floor = makeStaticEntity(MODEL_ID_FLOOR, x, y, 1, COLLISION_TYPE_NONE, alternateAngle, floorPalette, 1);
@@ -423,7 +436,7 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
     if ((x | 0) == 23 && FLAG_SHOW_ALIEN_BADGE) {
       entity.badges = {
         // 👽⚠️
-        0: [[2.2, 0, 4, 252], [2, 0, -1, 63]]
+        0: [[2.2, 0, 4, 252], [2, 0, -1, 62]]
       };
     }
     addEntity(world, entity)
@@ -433,7 +446,7 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
   // },
   'l': (world, x, y, alternateAngle) => {
     const palette: Vector4[] = [
-      COLOR_OFFER_WHITE,
+      COLOR_OFFEST_WHITE,
       COLOR_WOOD_LIGHT,
     ];
     addEntity(world, makeStaticEntity(MODEL_ID_TABLE, x, y, 1, COLLISION_TYPE_STATIC, alternateAngle, palette));
@@ -448,7 +461,7 @@ const globalLegend: {[_: string]: RoomFeatureFactory} = {
   },
   'm': (world, x, y, alternateAngle) => {
     const palette: Vector4[] = [
-      COLOR_OFFER_WHITE,
+      COLOR_OFFEST_WHITE,
       COLOR_WOOD_LIGHT,
     ];
     addEntity(world, makeStaticEntity(MODEL_ID_CHAIR, x, y, .55, COLLISION_TYPE_STATIC, alternateAngle, palette, 1));
@@ -634,8 +647,8 @@ const roomDefinitions: RoomDefinition[][] = [
         '#M______O'+
         '#__!___G#'+
         '#+++8___S'+
-        '#______C#'+
-        '#_+#____#'+
+        '#_______#'+
+        '#_+#_____'+
         '#__#_____'+
         ' ########'
     }
@@ -661,12 +674,12 @@ const roomDefinitions: RoomDefinition[][] = [
       layout:
         '___T_G###'+
         '___O_____'+
-        '__6O!____'+
+        '__6O_!___'+
         '___O_____'+
         '___O___E#'+
         '#ooooooo#'+
-        '#_______#'+
-        'Y_____c_V'+
+        '#______C#'+
+        'Y_______V'+
         '#########'
     }
   ],
@@ -691,9 +704,9 @@ const roomDefinitions: RoomDefinition[][] = [
       adjoiningRooms: ADJOIN_WEST | ADJOIN_NORTH,
       layout:
         '####y####'+
-        '__X_____#'+
         '__O_____#'+
-        '__O_m_m_#'+
+        '__O_____#'+
+        '__X_m_m_#'+
         '###Bl_l_#'+
         '__Z____!#'+
         '__O_+++_#'+

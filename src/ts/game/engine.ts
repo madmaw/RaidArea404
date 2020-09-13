@@ -4,6 +4,7 @@ const MAX_COLLISIONS = 3;
 type EngineState = {
   keyboardInputs: {[_: number]: number },
   litEntities?: LightEntity[],
+  //visibleRoom: Vector2,
 }
 
 const addEntity = (world: World, entity: Entity) => {
@@ -65,7 +66,7 @@ const lineOfSight = (world: World, viewerPosition: Vector3, viewerDepth: number,
   return !blocked;
 }
 
-const getRoom = (entity: Entity) => {
+const getRoom = (entity: Entity): Vector2 => {
   const rx = entity.pos[0]/CONST_ROOM_DIMENSION | 0;
   const ry = entity.pos[1]/CONST_ROOM_DIMENSION | 0;
   return [rx, ry];
@@ -196,7 +197,8 @@ const updater = (
   const litEntities: LightEntity[] = [];
   const originalWorldAge = world.age;
   world.age += delta;
-  const [roomX, roomY] = getRoom(world.player);
+  const roomPosition = getRoom(world.player);
+  const [roomX, roomY] = roomPosition;
   const cameraPosition = world.rooms[roomX][roomY].cameraPosition;
   const rooms = getAdjoiningRooms(world, roomX, roomY)
   iterateEntities(world, rooms, (entity: Entity) => {
@@ -210,6 +212,12 @@ const updater = (
     switch (entity.intelligence) {
       case INTELLIGENCE_USER_CONTROLLED:
         if (mathAbs(entity.deadness || 0) < CONST_MAX_DEADNESS) {
+
+          // check visible room
+          // if (roomPosition.some((v, i) => v != state.visibleRoom[i] && mathAbs(world.player.pos[i]%CONST_ROOM_DIMENSION - CONST_HALF_ROOM_DIMENSION)<CONST_HALF_ROOM_DIMENSION_MINUS_MARGIN)) {
+          //   state.visibleRoom = roomPosition;
+          // }
+
           const keyboardInputs = state.keyboardInputs;
           const turn = (keyboardInputs[KEY_CODE_RIGHT]|| 0) - (keyboardInputs[KEY_CODE_LEFT] || 0);
           entity.zRotation -= turn * delta / 400;
